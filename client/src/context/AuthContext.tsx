@@ -1,109 +1,75 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, UserRole } from '@/types';
 
-import React, { createContext, useState, useContext, useEffect } from "react";
-import { User, UserRole } from "@/types";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   role: UserRole | null;
-  login: (user: User) => void;
+  login: (userData: {user: User, access_token: string}) => void;
   logout: () => void;
   loading: boolean;
+  token: string | null;
 }
 
-// Sample users for demonstration
-const sampleUsers: User[] = [
-  {
-    id: "refugee-1",
-    name: "Ahmed Hassan",
-    role: "refugee",
-    language: "ar",
-    verified: true,
-    avatar: "/avatars/refugee.png",
-    email: "ahmed.hassan@example.com",
-  },
-  {
-    id: "volunteer-1",
-    name: "Sarah Miller",
-    role: "volunteer",
-    language: "en",
-    verified: true,
-    avatar: "/avatars/volunteer.png",
-    email: "sarah.miller@example.com",
-  },
-  {
-    id: "ngo-1",
-    name: "Global Aid Initiative",
-    role: "ngo",
-    language: "en",
-    verified: true,
-    avatar: "/avatars/ngo.png",
-    email: "contact@globalaidinitiative.org",
-  },
-  {
-    id: "admin-1",
-    name: "Admin User",
-    role: "admin",
-    language: "en",
-    verified: true,
-    email: "admin@refugelink.org",
-  },
-];
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isAuthenticated: false,
-  role: null,
-  login: () => {},
-  logout: () => {},
-  loading: true,
-});
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check for saved user in local storage
     const savedUser = localStorage.getItem("refugelink-user");
+    const savedToken = localStorage.getItem("refugelink-token");
+    
     if (savedUser) {
       try {
         setUser(JSON.parse(savedUser));
+        if (savedToken) {
+          setToken(savedToken);
+        }
       } catch (error) {
         console.error("Failed to parse saved user:", error);
         localStorage.removeItem("refugelink-user");
+        localStorage.removeItem("refugelink-token");
       }
     }
     setLoading(false);
   }, []);
 
-  const login = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem("refugelink-user", JSON.stringify(userData));
+  const login = (userData: {user: User, access_token: string}) => {
+    setUser(userData.user);
+    setToken(userData.access_token);
+    localStorage.setItem("refugelink-user", JSON.stringify(userData.user));
+    localStorage.setItem("refugelink-token", userData.access_token);
   };
 
   const logout = () => {
     setUser(null);
+    setToken(null);
     localStorage.removeItem("refugelink-user");
+    localStorage.removeItem("refugelink-token");
   };
 
   const value = {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !!token,
     role: user?.role || null,
     login,
     logout,
     loading,
+    token,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+}
 
-export const useAuth = () => useContext(AuthContext);
-
-// Helper function to get sample user by role - for demo purposes only
-export const getSampleUserByRole = (role: UserRole): User | undefined => {
-  return sampleUsers.find(user => user.role === role);
-};
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
