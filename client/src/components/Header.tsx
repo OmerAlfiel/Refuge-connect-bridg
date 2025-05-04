@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -17,9 +16,14 @@ import { Badge } from '@/components/ui/badge';
 const Header: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
   
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const isActive = (path: string) => {
+    return location.pathname === path;
   };
 
   // Mock data for notification counts
@@ -40,19 +44,34 @@ const Header: React.FC = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-sm font-medium hover:text-primary">
+          <Link 
+            to="/" 
+            className={`text-sm font-medium ${isActive('/') ? 'text-primary font-bold' : 'hover:text-primary'}`}
+          >
             Home
           </Link>
-          <Link to="/needs" className="text-sm font-medium hover:text-primary">
+          <Link 
+            to="/needs" 
+            className={`text-sm font-medium ${isActive('/needs') ? 'text-primary font-bold' : 'hover:text-primary'}`}
+          >
             Needs
           </Link>
-          <Link to="/offers" className="text-sm font-medium hover:text-primary">
+          <Link 
+            to="/offers" 
+            className={`text-sm font-medium ${isActive('/offers') ? 'text-primary font-bold' : 'hover:text-primary'}`}
+          >
             Offers
           </Link>
-          <Link to="/map" className="text-sm font-medium hover:text-primary">
+          <Link 
+            to="/map" 
+            className={`text-sm font-medium ${isActive('/map') ? 'text-primary font-bold' : 'hover:text-primary'}`}
+          >
             Map
           </Link>
-          <Link to="/about" className="text-sm font-medium hover:text-primary">
+          <Link 
+            to="/about" 
+            className={`text-sm font-medium ${isActive('/about') ? 'text-primary font-bold' : 'hover:text-primary'}`}
+          >
             About
           </Link>
         </nav>
@@ -167,19 +186,39 @@ const Header: React.FC = () => {
       {mobileMenuOpen && (
         <div className="md:hidden p-4 bg-background border-t">
           <nav className="flex flex-col space-y-4">
-            <Link to="/" className="text-sm font-medium hover:text-primary" onClick={toggleMobileMenu}>
+            <Link 
+              to="/" 
+              className={`text-sm font-medium ${isActive('/') ? 'text-primary font-bold' : 'hover:text-primary'}`}
+              onClick={toggleMobileMenu}
+            >
               Home
             </Link>
-            <Link to="/needs" className="text-sm font-medium hover:text-primary" onClick={toggleMobileMenu}>
+            <Link 
+              to="/needs" 
+              className={`text-sm font-medium ${isActive('/needs') ? 'text-primary font-bold' : 'hover:text-primary'}`}
+              onClick={toggleMobileMenu}
+            >
               Needs
             </Link>
-            <Link to="/offers" className="text-sm font-medium hover:text-primary" onClick={toggleMobileMenu}>
+            <Link 
+              to="/offers" 
+              className={`text-sm font-medium ${isActive('/offers') ? 'text-primary font-bold' : 'hover:text-primary'}`}
+              onClick={toggleMobileMenu}
+            >
               Offers
             </Link>
-            <Link to="/map" className="text-sm font-medium hover:text-primary" onClick={toggleMobileMenu}>
+            <Link 
+              to="/map" 
+              className={`text-sm font-medium ${isActive('/map') ? 'text-primary font-bold' : 'hover:text-primary'}`}
+              onClick={toggleMobileMenu}
+            >
               Map
             </Link>
-            <Link to="/about" className="text-sm font-medium hover:text-primary" onClick={toggleMobileMenu}>
+            <Link 
+              to="/about" 
+              className={`text-sm font-medium ${isActive('/about') ? 'text-primary font-bold' : 'hover:text-primary'}`}
+              onClick={toggleMobileMenu}
+            >
               About
             </Link>
             {isAuthenticated && (

@@ -1,14 +1,37 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MapPin, MessageCircle, ExternalLink, Mail, Phone, Info } from 'lucide-react';
+import { MapPin, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import MapComponent, { MapComponentRef } from '@/components/MapComponent';
 import { useNavigate } from 'react-router-dom';
 
-const OfferCard = ({ offer }: { offer: any }) => {
+interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+interface Contact {
+  name?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+}
+
+interface Offer {
+  title: string;
+  organization: string;
+  type: string;
+  description: string;
+  location: string;
+  imageUrl?: string;
+  coordinates?: Coordinates;
+  contact?: Contact;
+}
+
+const OfferCard = ({ offer }: { offer: Offer }) => {
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
   const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
   const { toast } = useToast();
