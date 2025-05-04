@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +15,12 @@ const Settings: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
+  // Create refs for each section
+  const profileSectionRef = useRef<HTMLDivElement>(null);
+  const notificationsSectionRef = useRef<HTMLDivElement>(null);
+  const securitySectionRef = useRef<HTMLDivElement>(null);
+  const languageSectionRef = useRef<HTMLDivElement>(null);
+
   // Basic information state
   const [name, setName] = useState(user?.name || '');
   // If user.email doesn't exist, fallback to an empty string
@@ -32,6 +37,13 @@ const Settings: React.FC = () => {
   const [profileVisibility, setProfileVisibility] = useState('all');
   const [shareLocation, setShareLocation] = useState(false);
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
+
+  // Function to scroll to a section
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
+    if (ref.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const handleSaveSettings = () => {
     // In a real app, this would send the data to an API
@@ -57,20 +69,40 @@ const Settings: React.FC = () => {
         
         <div className="grid grid-cols-12 gap-6">
           {/* Sidebar navigation for larger screens */}
-          <div className="col-span-12 lg:col-span-3 space-y-2">
-            <Button variant="ghost" className="w-full justify-start" size="lg">
+          <div className="col-span-12 lg:col-span-3 space-y-2 lg:sticky lg:top-24 lg:self-start">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start" 
+              size="lg"
+              onClick={() => scrollToSection(profileSectionRef)}
+            >
               <User className="mr-2 h-4 w-4" />
               Profile
             </Button>
-            <Button variant="ghost" className="w-full justify-start" size="lg">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start" 
+              size="lg"
+              onClick={() => scrollToSection(notificationsSectionRef)}
+            >
               <Bell className="mr-2 h-4 w-4" />
               Notifications
             </Button>
-            <Button variant="ghost" className="w-full justify-start" size="lg">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start" 
+              size="lg"
+              onClick={() => scrollToSection(securitySectionRef)}
+            >
               <Lock className="mr-2 h-4 w-4" />
               Privacy & Security
             </Button>
-            <Button variant="ghost" className="w-full justify-start" size="lg">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start" 
+              size="lg"
+              onClick={() => scrollToSection(languageSectionRef)}
+            >
               <Globe className="mr-2 h-4 w-4" />
               Language & Region
             </Button>
@@ -79,7 +111,7 @@ const Settings: React.FC = () => {
           {/* Main content area */}
           <div className="col-span-12 lg:col-span-9 space-y-6">
             {/* Profile Section */}
-            <Card>
+            <Card ref={profileSectionRef} id="profile-section">
               <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
                 <CardDescription>
@@ -116,7 +148,7 @@ const Settings: React.FC = () => {
             </Card>
             
             {/* Notifications Section */}
-            <Card>
+            <Card ref={notificationsSectionRef} id="notifications-section">
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
                 <CardDescription>
@@ -186,7 +218,7 @@ const Settings: React.FC = () => {
             </Card>
             
             {/* Privacy & Security */}
-            <Card>
+            <Card ref={securitySectionRef} id="security-section">
               <CardHeader>
                 <CardTitle>Privacy & Security</CardTitle>
                 <CardDescription>
@@ -246,7 +278,7 @@ const Settings: React.FC = () => {
             </Card>
             
             {/* Language Settings */}
-            <Card>
+            <Card ref={languageSectionRef} id="language-section">
               <CardHeader>
                 <CardTitle>Language & Region</CardTitle>
                 <CardDescription>

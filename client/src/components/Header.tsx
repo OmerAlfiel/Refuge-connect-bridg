@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -100,7 +100,12 @@ const Header: React.FC = () => {
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user?.avatar} alt={user?.name} />
-                      <AvatarFallback className={`bg-${user?.role || 'primary'}-500 text-white`}>
+                      <AvatarFallback className={
+                        user?.role === 'refugee' ? 'bg-refugee-500 text-white' :
+                        user?.role === 'volunteer' ? 'bg-volunteer-500 text-white' :
+                        user?.role === 'ngo' ? 'bg-ngo-500 text-white' :
+                        'bg-primary text-primary-foreground'
+                      }>
                         {user?.name?.charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
@@ -148,8 +153,8 @@ const Header: React.FC = () => {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    className="cursor-pointer text-destructive focus:text-destructive"
-                    onClick={logout}
+                    className="cursor-pointer"
+                    onClick={() => logout()}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
@@ -221,7 +226,7 @@ const Header: React.FC = () => {
             >
               About
             </Link>
-            {isAuthenticated && (
+            {isAuthenticated ? (
               <>
                 <Link to="/dashboard" className="text-sm font-medium hover:text-primary" onClick={toggleMobileMenu}>
                   Dashboard
@@ -251,6 +256,27 @@ const Header: React.FC = () => {
                   Log out
                 </button>
               </>
+            ) : (
+              <div className="flex flex-col space-y-2 pt-4 border-t">
+                <Link 
+                  to="/login" 
+                  className="w-full"
+                  onClick={toggleMobileMenu}
+                >
+                  <Button variant="outline" className="w-full">
+                    Log in
+                  </Button>
+                </Link>
+                <Link 
+                  to="/register" 
+                  className="w-full"
+                  onClick={toggleMobileMenu}
+                >
+                  <Button className="w-full">
+                    Register
+                  </Button>
+                </Link>
+              </div>
             )}
           </nav>
         </div>
