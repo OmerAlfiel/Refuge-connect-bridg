@@ -5,7 +5,9 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'debug', 'log', 'verbose'], // Add more detailed logging
+  });
   
   // Enable CORS
   app.enableCors();
@@ -38,5 +40,13 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`Application running on port ${port}`);
   console.log(`Swagger documentation available at http://localhost:${port}/api`);
+  
+  // Log database configuration
+  const dbConfig = configService.get('database');
+  console.log('Database configuration:');
+  console.log(`  Host: ${dbConfig.host}`);
+  console.log(`  Port: ${dbConfig.port}`);
+  console.log(`  Database: ${dbConfig.database}`);
+  console.log(`  Synchronize: ${dbConfig.synchronize}`);
 }
 bootstrap();

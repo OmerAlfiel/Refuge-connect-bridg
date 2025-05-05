@@ -1,13 +1,64 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit, Logger } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ConfigModule } from './config/config.module';
+import { DatabaseModule } from './database/database.module';
+import { DataSource } from 'typeorm';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './users/entities/user.entity';
 
 @Module({
-  imports: [AuthModule, UsersModule, ConfigModule],
+  imports: [
+    ConfigModule,
+    DatabaseModule,
+    // Add TypeOrmModule.forFeature here to ensure User entity is registered
+    TypeOrmModule.forFeature([User]),
+    AuthModule,
+    UsersModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+  private readonly logger = new Logger(AppModule.name);
+
+  constructor(private dataSource: DataSource) {}
+
+  async onModuleInit() {
+    try {
+      if (this.dataSource.isInitialized) {
+        this.logger.log('Data source is initialized!');
+        
+        // Verify entity metadata is loaded
+        const entities = this.dataSource.entityMetadatas;
+        this.logger.log(`Registered entities: ${entities.map(e => e.name).join(', ')}`);
+        
+        // Check if the users table exists
+        const tableExists = await this.dataSource.query(`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' AND table_name = 'users'
+          )
+        `);
+        
+        if (tableExists[0].exists) {
+          this.logger.log('Users table exists in the database');
+        } else {
+          this.logger.warn('Users table does not exist in the database');
+          
+          // Try to create it manually if needed
+          this.logger.log('Attempting to synchronize database...');
+          await this.dataSource.synchronize();
+          this.logger.log('Manual synchronization completed');
+        }
+      } else {
+        this.logger.error('DataSource is not initialized!');
+      }
+    } catch (error) {
+      this.logger.error('Database initialization check failed');
+      this.logger.error(error.message);
+    }
+  }
+}

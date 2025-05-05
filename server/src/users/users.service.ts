@@ -1,19 +1,26 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UsersService {
-  // In-memory users array for demonstration
-  // In production, use a proper database
-  private users: User[] = [];
+  constructor(
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
+    console.log('Creating new user:', { ...createUserDto, password: '***' });
+    
     // Check if user already exists
-    const existingUser = this.users.find(user => user.email === createUserDto.email);
+    const existingUser = await this.usersRepository.findOne({ 
+      where: { email: createUserDto.email } 
+    });
+    
     if (existingUser) {
       throw new ConflictException('Email already in use');
     }
@@ -23,16 +30,19 @@ export class UsersService {
     const hashedPassword = await bcrypt.hash(createUserDto.password, saltRounds);
 
     // Create new user
-    const newUser: User = {
-      id: uuidv4(),
+    const newUser = this.usersRepository.create({
       ...createUserDto,
       password: hashedPassword,
       verified: false,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    });
 
-    this.users.push(newUser);
+    try {
+      await this.usersRepository.save(newUser);
+      console.log(`User created with ID: ${newUser.id}`);
+    } catch (error) {
+      console.error('Error saving user to database:', error);
+      throw error;
+    }
     
     // Return user without password
     const { password, ...result } = newUser;
@@ -40,14 +50,15 @@ export class UsersService {
   }
 
   async findAll(): Promise<User[]> {
-    return this.users.map(user => {
+    const users = await this.usersRepository.find();
+    return users.map(user => {
       const { password, ...result } = user;
       return result as User;
     });
   }
 
   async findOne(id: string): Promise<User> {
-    const user = this.users.find(user => user.id === id);
+    const user = await this.usersRepository.findOne({ where: { id } });
     
     if (!user) {
       throw new NotFoundException(`User with ID "${id}" not found`);
@@ -58,13 +69,13 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
-    return this.users.find(user => user.email === email);
+    return this.usersRepository.findOne({ where: { email } });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const userIndex = this.users.findIndex(user => user.id === id);
+    const user = await this.usersRepository.findOne({ where: { id } });
     
-    if (userIndex === -1) {
+    if (!user) {
       throw new NotFoundException(`User with ID "${id}" not found`);
     }
 
@@ -74,23 +85,22 @@ export class UsersService {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, saltRounds);
     }
 
-    this.users[userIndex] = {
-      ...this.users[userIndex],
-      ...updateUserDto,
-      updatedAt: new Date()
-    };
-
-    const { password, ...result } = this.users[userIndex];
+    // Update user
+    await this.usersRepository.update(id, updateUserDto);
+    
+    // Get updated user
+    const updatedUser = await this.usersRepository.findOne({ where: { id } });
+    
+    // Return user without password
+    const { password, ...result } = updatedUser;
     return result as User;
   }
 
   async remove(id: string): Promise<void> {
-    const userIndex = this.users.findIndex(user => user.id === id);
+    const result = await this.usersRepository.delete(id);
     
-    if (userIndex === -1) {
+    if (result.affected === 0) {
       throw new NotFoundException(`User with ID "${id}" not found`);
     }
-
-    this.users.splice(userIndex, 1);
   }
 }
