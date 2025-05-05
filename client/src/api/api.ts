@@ -1,5 +1,7 @@
 import { useAuth } from '@/context/AuthContext';
 
+export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
 export const useApi = () => {
   const { token } = useAuth();
   

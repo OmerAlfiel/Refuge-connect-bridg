@@ -30,20 +30,29 @@ export type NeedCategory =
   | 'employment'
   | 'translation'
   | 'transportation'
+  | 'clothing'
   | 'other';
 
 export type NeedStatus = 'open' | 'matched' | 'fulfilled' | 'closed';
 
 export interface Need {
   id: string;
-  userId: string;
-  category: NeedCategory;
   title: string;
   description: string;
-  location?: Location;
-  status: NeedStatus;
-  createdAt: Date;
+  category: NeedCategory;
   urgent: boolean;
+  status: NeedStatus;
+  location?: {
+    lat: number;
+    lng: number;
+    address?: string;
+    city?: string;
+    country?: string;
+  };
+  userId: string;
+  user?: User;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 export interface Offer {

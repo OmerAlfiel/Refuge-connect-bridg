@@ -1,3 +1,4 @@
+import { Need } from 'src/needs/entities/need.entity';
 import { User } from '../users/entities/user.entity';
 
 export default () => ({
@@ -16,7 +17,7 @@ export default () => ({
     ssl: process.env.DATABASE_SSL === 'true' ? {
       rejectUnauthorized: false,
     } : false,
-    entities: [User],
+    entities: [User, Need],
     synchronize: true,
     autoLoadEntities: true,
     logging: true,

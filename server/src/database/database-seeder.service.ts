@@ -52,6 +52,7 @@ export class DatabaseSeederService implements OnModuleInit {
     try {
       // Drop tables if they exist
       await this.dataSource.query(`DROP TABLE IF EXISTS "users" CASCADE`);
+      await this.dataSource.query(`DROP TABLE IF EXISTS "needs" CASCADE`);
       
       // Drop enum if it exists
       await this.dataSource.query(`

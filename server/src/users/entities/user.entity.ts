@@ -1,6 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, EntitySubscriberInterface, InsertEvent } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, EntitySubscriberInterface, InsertEvent, OneToMany } from 'typeorm';
 import { UserRole } from '../interfaces/user-role.enum';
 import { Injectable, Logger } from '@nestjs/common';
+import { Need } from 'src/needs/entities/need.entity';
 
 @Entity('users')
 export class User {
@@ -51,6 +52,9 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => Need, need => need.user)
+  needs: Need[];
 }
 
 // Add an entity subscriber to debug entity creation

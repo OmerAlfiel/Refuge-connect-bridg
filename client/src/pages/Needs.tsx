@@ -21,6 +21,15 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { 
+  useNeeds, 
+  useUserNeeds, 
+  useCreateNeed, 
+  useUpdateNeed, 
+  useDeleteNeed,
+  useUpdateNeedStatus
+} from '@/hooks/use-needs';
+import { NeedCategory, NeedStatus } from '@/types';
 
 const Needs: React.FC = () => {
   const { user } = useAuth();
@@ -29,76 +38,31 @@ const Needs: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Fetch needs with filter params
+  const { data: needs, isLoading: isLoadingNeeds } = useNeeds({
+    category: selectedCategory !== 'all' ? selectedCategory as NeedCategory : undefined,
+    search: searchQuery || undefined,
+    urgent: showUrgentOnly || undefined,
+  });
 
-  // Sample data - in a real app, this would come from an API
-  const needsData = [
-    {
-      id: '1',
-      title: 'Need temporary shelter',
-      description: 'Family of 4 looking for temporary shelter for 2 weeks.',
-      category: 'shelter',
-      location: 'Berlin, Germany',
-      postedBy: 'Ahmed H.',
-      date: new Date(2023, 4, 15),
-      urgent: true,
-      status: 'open',
-    },
-    {
-      id: '2',
-      title: 'Help with translation of documents',
-      description: 'Need help translating official documents from Arabic to German.',
-      category: 'translation',
-      location: 'Berlin, Germany',
-      postedBy: 'Fatima K.',
-      date: new Date(2023, 4, 10),
-      urgent: false,
-      status: 'open',
-    },
-    {
-      id: '3',
-      title: 'Legal assistance for asylum application',
-      description: 'Looking for legal advice and help with filling asylum application forms.',
-      category: 'legal',
-      location: 'Munich, Germany',
-      postedBy: 'Youssef M.',
-      date: new Date(2023, 4, 5),
-      urgent: true,
-      status: 'open',
-    },
-    {
-      id: '4',
-      title: 'Medical assistance needed',
-      description: 'Need access to medical care for chronic condition (diabetes).',
-      category: 'medical',
-      location: 'Hamburg, Germany',
-      postedBy: 'Leila S.',
-      date: new Date(2023, 4, 3),
-      urgent: true,
-      status: 'matched',
-    },
-    {
-      id: '5',
-      title: 'School supplies for children',
-      description: 'Need school supplies for 2 children (ages 8 and 10).',
-      category: 'education',
-      location: 'Frankfurt, Germany',
-      postedBy: 'Omar K.',
-      date: new Date(2023, 4, 1),
-      urgent: false,
-      status: 'open',
-    },
-    {
-      id: '6',
-      title: 'Winter clothing needed',
-      description: 'Family needs winter clothing (jackets, boots, gloves) for cold weather.',
-      category: 'clothing',
-      location: 'Dresden, Germany',
-      postedBy: 'Amina R.',
-      date: new Date(2023, 3, 28),
-      urgent: false,
-      status: 'open',
-    },
-  ];
+  // Fetch user's own needs
+  const { data: userNeeds, isLoading: isLoadingUserNeeds } = useUserNeeds();
+  
+  // Mutations
+  const createNeedMutation = useCreateNeed();
+  const updateNeedMutation = useUpdateNeed();
+  const deleteNeedMutation = useDeleteNeed();
+  const updateNeedStatusMutation = useUpdateNeedStatus();
+
+  const [newNeed, setNewNeed] = useState({
+    title: '',
+    description: '',
+    category: '',
+    location: '',
+    urgent: false,
+  });
 
   const categories = [
     { value: 'all', label: 'All Categories' },
@@ -110,23 +74,16 @@ const Needs: React.FC = () => {
     { value: 'translation', label: 'Translation' },
     { value: 'clothing', label: 'Clothing' },
     { value: 'employment', label: 'Employment' },
+    { value: 'transportation', label: 'Transportation' },
     { value: 'other', label: 'Other' },
   ];
-
-  const [newNeed, setNewNeed] = useState({
-    title: '',
-    description: '',
-    category: '',
-    location: '',
-    urgent: false,
-  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setNewNeed({ ...newNeed, [name]: value });
   };
 
-  const handleSubmitNeed = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmitNeed = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     
     // Validate form
@@ -139,32 +96,73 @@ const Needs: React.FC = () => {
       return;
     }
 
-    // Here you would normally send this to an API
-    toast({
-      title: "Need posted successfully",
-      description: "Your need has been posted and is now visible to potential helpers.",
-    });
+    try {
+      await createNeedMutation.mutateAsync({
+        title: newNeed.title,
+        description: newNeed.description,
+        category: newNeed.category as NeedCategory,
+        urgent: newNeed.urgent,
+        location: newNeed.location ? {
+          lat: 0, // In a real app, you'd use geocoding to get coordinates
+          lng: 0,
+          address: newNeed.location
+        } : undefined
+      });
 
-    // Reset form
-    setNewNeed({
-      title: '',
-      description: '',
-      category: '',
-      location: '',
-      urgent: false,
-    });
+      toast({
+        title: "Need posted successfully",
+        description: "Your need has been posted and is now visible to potential helpers.",
+      });
 
-    // Close dialog (you would need to control this with state in a real implementation)
+      // Reset form & close dialog
+      setNewNeed({
+        title: '',
+        description: '',
+        category: '',
+        location: '',
+        urgent: false,
+      });
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error posting need",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    }
   };
 
-  const filteredNeeds = needsData.filter((need) => {
-    const matchesSearch = need.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          need.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || need.category === selectedCategory;
-    const matchesUrgency = !showUrgentOnly || need.urgent;
-    
-    return matchesSearch && matchesCategory && matchesUrgency;
-  });
+  const handleDeleteNeed = async (id: string) => {
+    try {
+      await deleteNeedMutation.mutateAsync(id);
+      toast({
+        title: "Need deleted",
+        description: "Your need has been deleted successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error deleting need",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, status: NeedStatus) => {
+    try {
+      await updateNeedStatusMutation.mutateAsync({ id, status });
+      toast({
+        title: "Status updated",
+        description: `Need status has been updated to ${status}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating status",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
@@ -188,6 +186,8 @@ const Needs: React.FC = () => {
         return 'bg-pink-100 text-pink-800';
       case 'employment':
         return 'bg-orange-100 text-orange-800';
+      case 'transportation':
+        return 'bg-cyan-100 text-cyan-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -240,7 +240,7 @@ const Needs: React.FC = () => {
                 </label>
               </div>
               
-              <Dialog>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
@@ -316,13 +316,19 @@ const Needs: React.FC = () => {
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleSubmitNeed}>Submit</Button>
+                    <Button onClick={handleSubmitNeed} disabled={createNeedMutation.isPending}>
+                      {createNeedMutation.isPending ? "Submitting..." : "Submit"}
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
             </div>
             
-            {filteredNeeds.length === 0 ? (
+            {isLoadingNeeds ? (
+              <div className="flex justify-center py-12">
+                <div className="spinner" />
+              </div>
+            ) : needs?.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-xl font-medium mb-2">No needs found</div>
                 <p className="text-muted-foreground">
@@ -331,7 +337,7 @@ const Needs: React.FC = () => {
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredNeeds.map((need) => (
+                {needs?.map((need) => (
                   <Card key={need.id} className={need.urgent ? 'border-red-400' : ''}>
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
@@ -342,7 +348,7 @@ const Needs: React.FC = () => {
                       </div>
                       <CardDescription className="flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
-                        {need.location}
+                        {need.location?.address || 'No location specified'}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -352,11 +358,11 @@ const Needs: React.FC = () => {
                           {need.category}
                         </span>
                         <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800">
-                          Posted {need.date.toLocaleDateString()}
+                          Posted {new Date(need.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Posted by: {need.postedBy}
+                        Posted by: {need.user?.name || 'Anonymous'}
                       </p>
                     </CardContent>
                     <CardFooter className="pt-0">
@@ -380,7 +386,7 @@ const Needs: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl font-semibold">Your Posted Needs</h2>
-                  <Dialog>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="mr-2 h-4 w-4" />
@@ -391,48 +397,67 @@ const Needs: React.FC = () => {
                   </Dialog>
                 </div>
                 
-                {/* Filter to only show the current user's needs */}
-                {needsData.filter(need => need.postedBy === user.name).length > 0 ? (
+                {isLoadingUserNeeds ? (
+                  <div className="flex justify-center py-12">
+                    <div className="spinner" />
+                  </div>
+                ) : userNeeds?.length ? (
                   <div className="space-y-4">
-                    {needsData
-                      .filter(need => need.postedBy === user.name)
-                      .map((need) => (
-                        <Card key={need.id}>
-                          <CardContent className="p-4">
-                            <div className="flex justify-between">
-                              <div>
-                                <h3 className="font-medium">{need.title}</h3>
-                                <p className="text-sm text-muted-foreground mb-2">{need.description}</p>
-                                <div className="flex flex-wrap gap-2">
-                                  <span className={`text-xs px-2 py-1 rounded-full ${getCategoryBadgeColor(need.category)}`}>
-                                    {need.category}
+                    {userNeeds.map((need) => (
+                      <Card key={need.id}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between">
+                            <div>
+                              <h3 className="font-medium">{need.title}</h3>
+                              <p className="text-sm text-muted-foreground mb-2">{need.description}</p>
+                              <div className="flex flex-wrap gap-2">
+                                <span className={`text-xs px-2 py-1 rounded-full ${getCategoryBadgeColor(need.category)}`}>
+                                  {need.category}
+                                </span>
+                                <span className={`text-xs px-2 py-1 rounded-full ${
+                                  need.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
+                                  need.status === 'matched' ? 'bg-blue-100 text-blue-800' :
+                                  need.status === 'fulfilled' ? 'bg-green-100 text-green-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {need.status.charAt(0).toUpperCase() + need.status.slice(1)}
+                                </span>
+                                {need.urgent && (
+                                  <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">
+                                    Urgent
                                   </span>
-                                  <span className={`text-xs px-2 py-1 rounded-full ${
-                                    need.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
-                                    need.status === 'matched' ? 'bg-blue-100 text-blue-800' :
-                                    'bg-green-100 text-green-800'
-                                  }`}>
-                                    {need.status.charAt(0).toUpperCase() + need.status.slice(1)}
-                                  </span>
-                                  {need.urgent && (
-                                    <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">
-                                      Urgent
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button variant="outline" size="sm">
-                                  Edit
-                                </Button>
-                                <Button variant="ghost" size="sm" className="text-destructive">
-                                  Delete
-                                </Button>
+                                )}
                               </div>
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                            <div className="flex gap-2">
+                              {need.status === 'open' && (
+                                <Select
+                                  onValueChange={(value) => handleUpdateStatus(need.id, value as NeedStatus)}
+                                >
+                                  <SelectTrigger className="w-[140px] h-8">
+                                    <SelectValue placeholder="Update Status" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="matched">Mark as Matched</SelectItem>
+                                    <SelectItem value="fulfilled">Mark as Fulfilled</SelectItem>
+                                    <SelectItem value="closed">Close Need</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-destructive"
+                                onClick={() => handleDeleteNeed(need.id)}
+                                disabled={deleteNeedMutation.isPending}
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 ) : (
                   <div className="text-center py-12">
@@ -440,7 +465,7 @@ const Needs: React.FC = () => {
                     <p className="text-muted-foreground mb-6">
                       Post a need to get help from our community of volunteers and organizations.
                     </p>
-                    <Dialog>
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                       <DialogTrigger asChild>
                         <Button>
                           <Plus className="mr-2 h-4 w-4" />

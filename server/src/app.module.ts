@@ -8,15 +8,18 @@ import { DatabaseModule } from './database/database.module';
 import { DataSource } from 'typeorm';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './users/entities/user.entity';
+import { NeedsModule } from './needs/needs.module';
+import { Need } from './needs/entities/need.entity';
 
 @Module({
   imports: [
     ConfigModule,
     DatabaseModule,
     // Add TypeOrmModule.forFeature here to ensure User entity is registered
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Need]),
     AuthModule,
     UsersModule,
+    NeedsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
