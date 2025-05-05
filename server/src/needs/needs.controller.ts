@@ -11,7 +11,7 @@ import {
   ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, 
   ApiParam, ApiQuery, ApiBody 
 } from '@nestjs/swagger';
-import { NeedStatus } from './interfaces/needs.enum';
+import { NeedStatus } from './interfaces/need-category.enum';
 
 @ApiTags('needs')
 @Controller('needs')
@@ -26,7 +26,7 @@ export class NeedsController {
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   async create(@Body() createNeedDto: CreateNeedDto, @Request() req) {
-    return this.needsService.create(createNeedDto, req.user.userId);
+    return this.needsService.create(createNeedDto, req.user.id);
   }
 
   @Get()

@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Need } from './entities/need.entity';
 import { CreateNeedDto } from './dto/create-need.dto';
 import { UpdateNeedDto } from './dto/update-need.dto';
-import { NeedStatus } from './interfaces/needs.enum';
+import { NeedStatus } from './interfaces/need-category.enum';
 
 @Injectable()
 export class NeedsService {
@@ -16,7 +16,7 @@ export class NeedsService {
   async create(createNeedDto: CreateNeedDto, userId: string): Promise<Need> {
     const need = this.needsRepository.create({
       ...createNeedDto,
-      userId,
+      userId: userId,
     });
     return await this.needsRepository.save(need);
   }

@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { NeedCategory, NeedStatus } from '../interfaces/needs.enum';
+import { NeedCategory, NeedStatus } from '../interfaces/need-category.enum';
 
 
 @Entity('needs')
@@ -44,7 +44,7 @@ export class Need {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column()
+  @Column({ nullable: false })
   userId: string;
   
   @CreateDateColumn()

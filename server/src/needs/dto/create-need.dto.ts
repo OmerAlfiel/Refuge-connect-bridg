@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsString, IsEnum, IsBoolean, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { NeedCategory } from '../interfaces/needs.enum';
+import { NeedCategory } from '../interfaces/need-category.enum';
 
 
 class LocationDto {
