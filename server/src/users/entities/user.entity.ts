@@ -2,6 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { UserRole } from '../interfaces/user-role.enum';
 import { Injectable, Logger } from '@nestjs/common';
 import { Need } from 'src/needs/entities/need.entity';
+import { Offer } from 'src/offers/entities/offer.entity';
 
 @Entity('users')
 export class User {
@@ -53,8 +54,13 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
+  // Relationships
+
   @OneToMany(() => Need, need => need.user)
   needs: Need[];
+
+  @OneToMany(() => Offer, offer => offer.user)
+  offers: Offer[];
 }
 
 // Add an entity subscriber to debug entity creation

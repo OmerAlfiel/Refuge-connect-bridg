@@ -55,20 +55,155 @@ export interface Need {
   updatedAt: string | Date;
 }
 
+export type OfferCategory = 
+  | 'shelter'
+  | 'food'
+  | 'medical'
+  | 'legal'
+  | 'education'
+  | 'employment'
+  | 'translation'
+  | 'transportation'
+  | 'other';
+
+export type OfferStatus = 'active' | 'paused' | 'ended' | 'deleted';
+
 export interface Offer {
   id: string;
-  userId: string;
-  category: NeedCategory;
   title: string;
   description: string;
-  location?: Location;
-  availability: {
+  category: OfferCategory;
+  status: OfferStatus;
+  location?: {
+    lat: number;
+    lng: number;
+    address?: string;
+    city?: string;
+    country?: string;
+  };
+  contact?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
+  availability?: {
     startDate?: Date;
     endDate?: Date;
     recurring?: boolean;
+    schedule?: string;
   };
-  createdAt: Date;
+  userId: string;
+  user?: User;
+  helpedCount: number;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
+
+
+export interface CreateOfferRequest {
+  title: string;
+  description: string;
+  category: OfferCategory;
+  location?: {
+    lat: number;
+    lng: number;
+    address?: string;
+    city?: string;
+    country?: string;
+  };
+  contact?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
+  availability?: {
+    startDate?: string;
+    endDate?: string;
+    recurring?: boolean;
+    schedule?: string;
+  };
+}
+
+export interface UpdateOfferRequest {
+  title?: string;
+  description?: string;
+  category?: OfferCategory;
+  status?: OfferStatus;
+  location?: {
+    lat: number;
+    lng: number;
+    address?: string;
+    city?: string;
+    country?: string;
+  };
+  contact?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
+  availability?: {
+    startDate?: string;
+    endDate?: string;
+    recurring?: boolean;
+    schedule?: string;
+  };
+}
+
+export interface OffersQueryParams {
+  category?: OfferCategory;
+  status?: OfferStatus;
+  search?: string;
+  location?: string;
+}
+
+
+
+export interface CreateNeedRequest {
+  title: string;
+  description: string;
+  category: NeedCategory;
+  urgent: boolean;
+  location?: {
+    lat: number;
+    lng: number;
+    address?: string;
+    city?: string;
+    country?: string;
+  };
+}
+
+export interface UpdateNeedRequest {
+  title?: string;
+  description?: string;
+  category?: NeedCategory;
+  urgent?: boolean;
+  status?: NeedStatus;
+  location?: {
+    lat: number;
+    lng: number;
+    address?: string;
+    city?: string;
+    country?: string;
+  };
+}
+
+export interface NeedsQueryParams {
+  category?: NeedCategory;
+  urgent?: boolean;
+  status?: NeedStatus;
+  search?: string;
+}
+
+
+
+
+
+
+
+
 
 export type DocumentType = 'id' | 'medical' | 'legal' | 'educational' | 'other';
 

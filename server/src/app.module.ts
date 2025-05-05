@@ -10,16 +10,19 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './users/entities/user.entity';
 import { NeedsModule } from './needs/needs.module';
 import { Need } from './needs/entities/need.entity';
+import { OffersModule } from './offers/offers.module';
+import { Offer } from './offers/entities/offer.entity';
 
 @Module({
   imports: [
     ConfigModule,
     DatabaseModule,
     // Add TypeOrmModule.forFeature here to ensure User entity is registered
-    TypeOrmModule.forFeature([User, Need]),
+    TypeOrmModule.forFeature([User, Need, Offer]),
     AuthModule,
     UsersModule,
     NeedsModule,
+    OffersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

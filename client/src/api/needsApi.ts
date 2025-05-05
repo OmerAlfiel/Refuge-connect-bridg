@@ -1,42 +1,8 @@
-import { Need, NeedCategory, NeedStatus } from '../types';
+import { CreateNeedRequest, Need, NeedCategory, NeedsQueryParams, NeedStatus, UpdateNeedRequest } from '../types';
 import { apiBaseUrl } from './api';
 
 
-export interface CreateNeedRequest {
-  title: string;
-  description: string;
-  category: NeedCategory;
-  urgent: boolean;
-  location?: {
-    lat: number;
-    lng: number;
-    address?: string;
-    city?: string;
-    country?: string;
-  };
-}
 
-export interface UpdateNeedRequest {
-  title?: string;
-  description?: string;
-  category?: NeedCategory;
-  urgent?: boolean;
-  status?: NeedStatus;
-  location?: {
-    lat: number;
-    lng: number;
-    address?: string;
-    city?: string;
-    country?: string;
-  };
-}
-
-export interface NeedsQueryParams {
-  category?: NeedCategory;
-  urgent?: boolean;
-  status?: NeedStatus;
-  search?: string;
-}
 
 export const NeedsApi = {
   getNeeds: async (queryParams?: NeedsQueryParams): Promise<Need[]> => {
