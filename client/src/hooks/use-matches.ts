@@ -26,11 +26,8 @@ export function useUserMatches() {
     queryKey: ['user-matches'],
     queryFn: async () => {
       if (!token || !user?.id) {
-        console.warn("Missing token or user ID in useUserMatches");
         return [];
       }
-      
-      console.log("Fetching matches for user:", user.id);
       try {
         // Check current needs and offers
         const [needsResponse, offersResponse] = await Promise.all([
@@ -45,10 +42,6 @@ export function useUserMatches() {
         const needs = await needsResponse.json();
         const offers = await offersResponse.json();
 
-        console.log(`User has ${needs.length} needs and ${offers.length} offers`);
-        console.log('Needs:', needs.map(n => ({ id: n.id, category: n.category })));
-        console.log('Offers:', offers.map(o => ({ id: o.id, category: o.category })));
-
         // Fetch matches
         const response = await fetch(`${apiBaseUrl}/matches`, {
           headers: {
@@ -62,7 +55,6 @@ export function useUserMatches() {
         }
 
         const matches = await response.json();
-        console.log(`Fetched ${matches.length} matches:`, matches);
 
         return matches;
       } catch (error) {
@@ -100,7 +92,6 @@ export function useCreateMatch() {
   
   return useMutation({
     mutationFn: async (match: CreateMatchRequest) => {
-      console.log("Creating match with data:", match);
       
       // Add validation to ensure at least one ID is provided
       if (!match.needId && !match.offerId) {
@@ -115,18 +106,6 @@ export function useCreateMatch() {
       
       // Log performance metrics
       const duration = Date.now() - startTime;
-      console.log(`Match created in ${duration}ms with ID: ${result.id}`);
-      
-      // Log the created match for debugging
-      console.log("Match created successfully:", {
-        id: result.id,
-        needId: result.needId,
-        offerId: result.offerId,
-        status: result.status,
-        initiatedBy: result.initiatedBy,
-        hasNeed: !!result.need,
-        hasOffer: !!result.offer
-      });
       
       return result;
     },

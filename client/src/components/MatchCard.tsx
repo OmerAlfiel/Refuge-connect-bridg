@@ -132,13 +132,12 @@ export function MatchCard({ match }: MatchCardProps) {
 
   return (
     <>
-      <Card>
+      <Card>   
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-lg flex items-center">
                 {isDirectRequest ? (
-                  // This is a direct request (either need or offer is null)
                   <>
                     {match.needId ? (
                       <>
@@ -153,7 +152,6 @@ export function MatchCard({ match }: MatchCardProps) {
                     )}
                   </>
                 ) : (
-                  // This is a full match (both need and offer exist)
                   <>
                     <span className="truncate max-w-[120px] md:max-w-xs">{match.need?.title || "Need"}</span>
                     <ChevronRight className="mx-1 h-4 w-4 text-muted-foreground" />
@@ -161,16 +159,18 @@ export function MatchCard({ match }: MatchCardProps) {
                   </>
                 )}
               </CardTitle>
-              <CardDescription className="flex items-center gap-1 mt-1">
-                <Clock className="h-3 w-3" />
-                {formatDate(match.createdAt)}
+              <div className="flex items-center gap-1 mt-1">
+                <CardDescription className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatDate(match.createdAt)}
+                </CardDescription>
                 
                 {match.need && (
                   <Badge className={`ml-2 ${getCategoryBadgeColor(match.need.category)}`} variant="secondary">
                     {match.need.category}
                   </Badge>
                 )}
-              </CardDescription>
+              </div>
             </div>
             <Badge className={getStatusColor(match.status)}>
               {match.status.charAt(0).toUpperCase() + match.status.slice(1)}

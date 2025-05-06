@@ -128,28 +128,6 @@ const Matches: React.FC = () => {
       setIsCreating(false);
     }
   };
-
-  useEffect(() => {
-    console.log("Current matches data:", userMatches);
-    
-    // Check if user info is properly loaded
-    console.log("Current user:", user);
-    
-    // Additional debug for specific match properties
-    if (userMatches.length > 0) {
-      console.log("First match details:", {
-        id: userMatches[0].id,
-        needId: userMatches[0].needId,
-        offerId: userMatches[0].offerId,
-        status: userMatches[0].status,
-        initiatedBy: userMatches[0].initiatedBy,
-        hasNeed: !!userMatches[0].need,
-        hasOffer: !!userMatches[0].offer
-      });
-    } else {
-      console.log("No matches found");
-    }
-  }, [userMatches, user]);
   
   // Filter matches based on status, type, and search term
   const filteredMatches = useMemo(() => {
@@ -173,10 +151,6 @@ const Matches: React.FC = () => {
       return matchesStatus && matchesType && matchesSearch;
     });
   }, [userMatches, status, type, search]);
-
-  useEffect(() => {
-    console.log("Current matches data:", userMatches);
-  }, [userMatches]);
   
   // Separate matches by role
   const sentMatches = filteredMatches.filter(match => match.initiatedBy === user?.id);
