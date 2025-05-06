@@ -1,4 +1,9 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { apiBaseUrl } from "@/api/api";
+import { useNeeds } from "@/hooks/use-needs";
+import { useOffers } from "@/hooks/use-offers";
+
+import { Plus, Search, Info, AlertCircle, Loader2, Filter } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -9,21 +14,142 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Info, AlertCircle, Loader2, Filter } from "lucide-react";
 import Layout from "@/components/Layout";
 import { MatchCard } from "@/components/MatchCard";
 import { useUserMatches } from "@/hooks/use-matches";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { MatchStatus } from "@/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { categoriesMatch } from "@/utils/categoriesMatch";
+import { toast } from "@/hooks/use-toast";
+
+const DebugInfo = ({ userNeeds, userOffers, userMatches }) => {
+  if (process.env.NODE_ENV !== 'development') return null;
+
+  return (
+    <div className="mb-4 p-4 bg-gray-100 rounded-md text-xs">
+      <h4 className="font-bold mb-2">Debug Info</h4>
+      <div>
+        <p>Needs ({userNeeds.length}): {JSON.stringify(userNeeds.map(n => ({
+          id: n.id.substring(0, 8),
+          category: n.category,
+          status: n.status
+        })))}</p>
+        <p>Offers ({userOffers.length}): {JSON.stringify(userOffers.map(o => ({
+          id: o.id.substring(0, 8),
+          category: o.category,
+          status: o.status
+        })))}</p>
+        <p>Matches ({userMatches.length}): {JSON.stringify(userMatches.map(m => ({
+          id: m.id.substring(0, 8),
+          needId: m.needId?.substring(0, 8),
+          offerId: m.offerId?.substring(0, 8),
+          status: m.status
+        })))}</p>
+      </div>
+    </div>
+  );
+};
 
 const Matches: React.FC = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [status, setStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [type, setType] = useState<string>("all"); // all, need, offer
+  const [type, setType] = useState<string>("all");
+  const [isCreating, setIsCreating] = useState(false);
   
   const { data: userMatches = [], isLoading, isError } = useUserMatches();
+  const { data: userNeeds = [] } = useNeeds({ status: 'open' });
+  const { data: userOffers = [] } = useOffers({ status: 'active' });
+  const queryClient = useQueryClient();
+
+  const compatiblePairs = useMemo(() => {
+    const pairs = [];
+    for (const need of userNeeds) {
+      for (const offer of userOffers) {
+        if (categoriesMatch(need.category, offer.category)) {
+          pairs.push({ need, offer });
+        }
+      }
+    }
+    return pairs;
+  }, [userNeeds, userOffers]);
+
+  const createMatch = async () => {
+    if (compatiblePairs.length === 0) {
+      toast({
+        title: "No compatible pairs",
+        description: "You don't have any needs and offers with matching categories",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsCreating(true);
+      const pair = compatiblePairs[0];
+      
+      const response = await fetch(`${apiBaseUrl}/matches/create-match-between`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          needId: pair.need.id,
+          offerId: pair.offer.id,
+          message: `Auto-matched based on compatible categories: ${pair.need.category}`
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+      
+      const result = await response.json();
+      
+      toast({
+        title: "Match created",
+        description: "A match has been created between your need and offer",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['user-matches'] });
+      
+    } catch (error) {
+      console.error("Error creating match:", error);
+      toast({
+        title: "Failed to create match",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log("Current matches data:", userMatches);
+    
+    // Check if user info is properly loaded
+    console.log("Current user:", user);
+    
+    // Additional debug for specific match properties
+    if (userMatches.length > 0) {
+      console.log("First match details:", {
+        id: userMatches[0].id,
+        needId: userMatches[0].needId,
+        offerId: userMatches[0].offerId,
+        status: userMatches[0].status,
+        initiatedBy: userMatches[0].initiatedBy,
+        hasNeed: !!userMatches[0].need,
+        hasOffer: !!userMatches[0].offer
+      });
+    } else {
+      console.log("No matches found");
+    }
+  }, [userMatches, user]);
   
   // Filter matches based on status, type, and search term
   const filteredMatches = useMemo(() => {
@@ -47,6 +173,10 @@ const Matches: React.FC = () => {
       return matchesStatus && matchesType && matchesSearch;
     });
   }, [userMatches, status, type, search]);
+
+  useEffect(() => {
+    console.log("Current matches data:", userMatches);
+  }, [userMatches]);
   
   // Separate matches by role
   const sentMatches = filteredMatches.filter(match => match.initiatedBy === user?.id);
@@ -82,10 +212,34 @@ const Matches: React.FC = () => {
   return (
     <Layout>
       <div className="container py-8">
-        <h1 className="text-3xl font-bold mb-2">Your Matches</h1>
-        <p className="text-muted-foreground mb-6">
-          View and manage connections between needs and offers
-        </p>
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Your Matches</h1>
+            <p className="text-muted-foreground">
+              View and manage connections between needs and offers
+              {compatiblePairs.length > 0 && (
+                <span className="block text-sm mt-1 text-green-600">
+                  You have {compatiblePairs.length} compatible need-offer pairs that could be matched
+                </span>
+              )}
+            </p>
+          </div>
+          
+          {compatiblePairs.length > 0 && (
+            <Button onClick={createMatch} disabled={isCreating}>
+              {isCreating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  Reload Matches
+                </>
+              )}
+            </Button>
+          )}
+        </div>
 
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">

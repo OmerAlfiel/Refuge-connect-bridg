@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar, MapPin, UserIcon, CheckCircle, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { categoriesMatch } from "@/utils/categoriesMatch";
 
 // Update the interface
 interface NeedDetailProps {
@@ -34,20 +35,7 @@ export function NeedDetail({ need, isOpen, onClose, onOfferHelp }: NeedDetailPro
   });
 
   // Filter offers that match the need's category
-  const matchingOffers = userOffers.filter(offer => {
-    // Direct category match
-    if (offer.category === need.category) {
-      return true;
-    }
-    
-    // Special case for shelter/housing equivalence
-    if ((need.category === 'shelter' && offer.category === 'housing') || 
-        (need.category === 'housing' && offer.category === 'shelter')) {
-      return true;
-    }
-    
-    return false;
-  });
+  const matchingOffers = userOffers.filter(offer => categoriesMatch(need.category, offer.category));
 
   const getCategoryBadgeColor = (category: string) => {
     switch(category) {

@@ -11,6 +11,7 @@ import { Calendar, MapPin, UserIcon, CheckCircle, MessageSquare } from "lucide-r
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import MapComponent from "@/components/MapComponent";
+import { categoriesMatch } from "@/utils/categoriesMatch";
 
 // Interface matching the NeedDetail props pattern
 interface OfferDetailProps {
@@ -33,21 +34,8 @@ export function OfferDetail({ offer, isOpen, onClose, onRequestMatch }: OfferDet
     status: 'open',
   });
 
-  // Filter needs that match the offer's category
-  const matchingNeeds = userNeeds.filter(need => {
-    // Direct category match
-    if (need.category === offer.category) {
-      return true;
-    }
-    
-    // Special case for shelter/housing equivalence
-    if ((need.category === 'shelter' && offer.category === 'housing') || 
-        (need.category === 'housing' && offer.category === 'shelter')) {
-      return true;
-    }
-    
-    return false;
-  });
+  // Filter needs that match the offer's category - improve the matching logic
+  const matchingNeeds = userNeeds.filter(need => categoriesMatch(need.category, offer.category));
 
   const getCategoryBadgeColor = (category: string) => {
     switch(category) {

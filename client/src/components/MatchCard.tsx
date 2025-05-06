@@ -27,6 +27,7 @@ export function MatchCard({ match }: MatchCardProps) {
 
   const isUserInitiator = user?.id === match.initiatedBy;
   const canRespond = !isUserInitiator && match.status === "pending";
+  
   const formatDate = (dateString: string | Date) => {
     return format(new Date(dateString), "PPP");
   };
@@ -152,6 +153,7 @@ export function MatchCard({ match }: MatchCardProps) {
                     )}
                   </>
                 ) : (
+                  // This is a full match (both need and offer exist)
                   <>
                     <span className="truncate max-w-[120px] md:max-w-xs">{match.need?.title || "Need"}</span>
                     <ChevronRight className="mx-1 h-4 w-4 text-muted-foreground" />

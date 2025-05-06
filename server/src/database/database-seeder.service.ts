@@ -12,7 +12,7 @@ export class DatabaseSeederService implements OnModuleInit {
     private dataSource: DataSource,
   ) {}
 
-  async onModuleInit() {
+  async onModuleInit() { 
     try {
       this.logger.log('Checking database connection...');
       await this.dataSource.query('SELECT NOW()');
@@ -50,20 +50,6 @@ export class DatabaseSeederService implements OnModuleInit {
     this.logger.log('Resetting database schema...');
     
     try {
-      // Drop tables if they exist
-      await this.dataSource.query(`DROP TABLE IF EXISTS "users" CASCADE`);
-      await this.dataSource.query(`DROP TABLE IF EXISTS "needs" CASCADE`);
-      
-      // Drop enum if it exists
-      await this.dataSource.query(`
-        DO $$ 
-        BEGIN 
-          IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role_enum') THEN
-            DROP TYPE user_role_enum CASCADE; 
-          END IF;
-        END $$;
-      `);
-      
       // Create enum
       const roles = Object.values(UserRole).map(role => `'${role}'`).join(', ');
       await this.dataSource.query(`CREATE TYPE user_role_enum AS ENUM (${roles})`);

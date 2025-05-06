@@ -4,7 +4,6 @@ import { Need } from '../../needs/entities/need.entity';
 import { Offer } from '../../offers/entities/offer.entity';
 import { MatchStatus } from '../interfaces/match.enum';
 
-
 @Entity('matches')
 export class Match {
   @PrimaryGeneratedColumn('uuid')

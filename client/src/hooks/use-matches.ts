@@ -3,6 +3,7 @@ import { MatchesApi } from '../api/matchesApi';
 import { useAuth } from '../context/AuthContext';
 import { CreateMatchRequest, MatchStatus, UpdateMatchRequest, MatchesQueryParams } from '../types';
 import { useToast } from './use-toast';
+import { apiBaseUrl } from '@/api/api';
 
 export function useMatches(needId?: string, offerId?: string, status?: MatchStatus) {
   const { token } = useAuth();
@@ -13,29 +14,70 @@ export function useMatches(needId?: string, offerId?: string, status?: MatchStat
     queryFn: () => MatchesApi.getMatches(queryParams, token),
     enabled: !!token && (!!needId || !!offerId || !!status),
     retry: 1,
-    refetchOnWindowFocus: false,
-    meta: {
-      onError: (error) => {
-        console.error("Error fetching matches:", error);
-      }
-    }
+    refetchOnWindowFocus: false
   });
 }
 
 export function useUserMatches() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const { toast } = useToast();
   
   return useQuery({
     queryKey: ['user-matches'],
-    queryFn: () => MatchesApi.getMatches({}, token),
-    enabled: !!token,
-    retry: 1,
-    refetchOnWindowFocus: false,
-    meta: {
-    onError: (error) => {
-      console.error("Error fetching user matches:", error);
-    }
-  }
+    queryFn: async () => {
+      if (!token || !user?.id) {
+        console.warn("Missing token or user ID in useUserMatches");
+        return [];
+      }
+      
+      console.log("Fetching matches for user:", user.id);
+      try {
+        // Check current needs and offers
+        const [needsResponse, offersResponse] = await Promise.all([
+          fetch(`${apiBaseUrl}/needs/user`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch(`${apiBaseUrl}/offers/user`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ]);
+
+        const needs = await needsResponse.json();
+        const offers = await offersResponse.json();
+
+        console.log(`User has ${needs.length} needs and ${offers.length} offers`);
+        console.log('Needs:', needs.map(n => ({ id: n.id, category: n.category })));
+        console.log('Offers:', offers.map(o => ({ id: o.id, category: o.category })));
+
+        // Fetch matches
+        const response = await fetch(`${apiBaseUrl}/matches`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch matches: ${response.status} ${response.statusText}`);
+        }
+
+        const matches = await response.json();
+        console.log(`Fetched ${matches.length} matches:`, matches);
+
+        return matches;
+      } catch (error) {
+        console.error("Error in useUserMatches:", error);
+        toast({
+          title: "Error loading matches",
+          description: error instanceof Error ? error.message : "An unknown error occurred",
+          variant: "destructive"
+        });
+        return [];
+      }
+    },
+    enabled: !!token && !!user?.id,
+    retry: 2,
+    refetchOnWindowFocus: false
   });
 }
 
@@ -58,19 +100,40 @@ export function useCreateMatch() {
   
   return useMutation({
     mutationFn: async (match: CreateMatchRequest) => {
-      try {
-        console.log("Creating match:", match);
-        const result = await MatchesApi.createMatch(match, token);
-        console.log("Match created successfully:", result);
-        return result;
-      } catch (error) {
-        console.error("Error creating match:", error);
-        throw error;
+      console.log("Creating match with data:", match);
+      
+      // Add validation to ensure at least one ID is provided
+      if (!match.needId && !match.offerId) {
+        throw new Error("Either a need ID or offer ID must be provided");
       }
+      
+      // Track the start time for performance monitoring
+      const startTime = Date.now();
+      
+      // Call the API to create the match
+      const result = await MatchesApi.createMatch(match, token);
+      
+      // Log performance metrics
+      const duration = Date.now() - startTime;
+      console.log(`Match created in ${duration}ms with ID: ${result.id}`);
+      
+      // Log the created match for debugging
+      console.log("Match created successfully:", {
+        id: result.id,
+        needId: result.needId,
+        offerId: result.offerId,
+        status: result.status,
+        initiatedBy: result.initiatedBy,
+        hasNeed: !!result.need,
+        hasOffer: !!result.offer
+      });
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['user-matches'] });
+      
       toast({
         title: "Success",
         description: "Match request sent successfully",
@@ -78,7 +141,8 @@ export function useCreateMatch() {
       });
     },
     onError: (error) => {
-      console.error("Match creation failed:", error);
+      console.error("Match creation error:", error);
+      
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create match",

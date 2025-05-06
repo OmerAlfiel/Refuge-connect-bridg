@@ -2,40 +2,67 @@ import { Match, CreateMatchRequest, MatchStatus, MatchesQueryParams, UpdateMatch
 import { apiBaseUrl } from './api';
 
 export const MatchesApi = {
-  getMatches: async (queryParams: MatchesQueryParams = {}, token: string): Promise<Match[]> => {
-    try {
-      if (!token || token === 'undefined' || token === 'null') {
-        console.warn('Invalid token in getMatches:', token);
-        return [];
-      }
-      
-      const params = new URLSearchParams();
-      if (queryParams?.status) params.append('status', queryParams.status);
-      if (queryParams?.needId) params.append('needId', queryParams.needId);
-      if (queryParams?.offerId) params.append('offerId', queryParams.offerId);
 
-      const queryString = params.toString() ? `?${params.toString()}` : '';
+
+getMatches: async (queryParams: MatchesQueryParams = {}, token: string): Promise<Match[]> => {
+  try {
+    if (!token || token === 'undefined' || token === 'null') {
+      console.warn('Invalid token in getMatches:', token);
+      return [];
+    }
+    
+    const params = new URLSearchParams();
+    if (queryParams?.status) params.append('status', queryParams.status);
+    if (queryParams?.needId) params.append('needId', queryParams.needId);
+    if (queryParams?.offerId) params.append('offerId', queryParams.offerId);
+
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    
+    console.log(`Fetching matches from: ${apiBaseUrl}/matches${queryString}`);
+    
+    const response = await fetch(`${apiBaseUrl}/matches${queryString}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    
+    // Log full response details for debugging
+    console.log(`Matches API response status: ${response.status} ${response.statusText}`);
+    
+    if (!response.ok) {
+      // Get complete error response for debugging
+      const responseText = await response.text();
+      console.error('Error response text:', responseText);
       
-      console.log(`Fetching matches from: ${apiBaseUrl}/matches${queryString}`);
-      
-      const response = await fetch(`${apiBaseUrl}/matches${queryString}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Error fetching matches:', errorData);
-        throw new Error(errorData.message || `Failed to fetch matches: ${response.status} ${response.statusText}`);
+      let errorData;
+      try {
+        errorData = JSON.parse(responseText);
+        console.error('Parsed error data:', errorData);
+      } catch (e) {
+        console.error('Could not parse error response as JSON');
+        throw new Error(`Failed to fetch matches: ${response.status} ${response.statusText} - ${responseText}`);
       }
       
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching matches:", error);
-      return []; // Return empty array on error to prevent UI crashes
+      throw new Error(errorData.message || `Failed to fetch matches: ${response.status} ${response.statusText}`);
     }
-  },
+    
+    const data = await response.json();
+    console.log('Matches data received:', data);
+    
+    // Validate data
+    if (!Array.isArray(data)) {
+      console.error('Expected array of matches but received:', typeof data);
+      return [];
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error fetching matches:", error);
+    return []; // Return empty array on error to prevent UI crashes
+  }
+},
 
   getMatchById: async (id: string, token: string): Promise<Match> => {
     try {
@@ -59,8 +86,6 @@ export const MatchesApi = {
   
   createMatch: async (match: CreateMatchRequest, token: string): Promise<Match> => {
     try {
-      console.log("Creating match with data:", JSON.stringify(match, null, 2));
-      
       if (!token) {
         throw new Error('Authentication token is missing');
       }
@@ -69,6 +94,8 @@ export const MatchesApi = {
       if (match.needId === null && match.offerId === null) {
         throw new Error('Either needId or offerId must be provided');
       }
+      
+      console.log('Creating match with data:', JSON.stringify(match));
       
       const response = await fetch(`${apiBaseUrl}/matches`, {
         method: 'POST',
@@ -79,22 +106,35 @@ export const MatchesApi = {
         body: JSON.stringify(match)
       });
       
+      console.log(`Create match response status: ${response.status} ${response.statusText}`);
+      
       if (!response.ok) {
-        // Get response as text first to debug
         const responseText = await response.text();
+        console.error('Create match error response:', responseText);
         
-        // Try to parse as JSON if possible
-        let errorData;
+        let errorMessage = `Failed to create match: ${response.status} ${response.statusText}`;
+        
         try {
-          errorData = JSON.parse(responseText);
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          
+          if (errorMessage.includes('category mismatch') || 
+              errorMessage.includes('Category mismatch')) {
+            errorMessage = `Category mismatch: The need and offer categories don't match.`;
+          }
         } catch (e) {
-          throw new Error(`Invalid server response: ${responseText}`);
+          // If we can't parse the error response, use the raw text
+          if (responseText) {
+            errorMessage += ` - ${responseText}`;
+          }
         }
         
-        throw new Error(errorData.message || `Failed to create match (${response.status}): ${errorData.error || 'Unknown error'}`);
+        throw new Error(errorMessage);
       }
       
-      return await response.json();
+      const createdMatch = await response.json();
+      console.log('Match created successfully:', createdMatch);
+      return createdMatch;
     } catch (error) {
       console.error("Match creation error:", error);
       throw error;
