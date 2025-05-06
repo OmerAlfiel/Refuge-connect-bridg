@@ -4,7 +4,7 @@ import { OffersService } from './offers.service';
 import { OffersController } from './offers.controller';
 import { Offer } from './entities/offer.entity';
 import { JwtStrategy } from '../auth/strategies/jwt.strategy';
-import { RolesGuard } from 'src/auth/guards/roles.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 
 @Module({

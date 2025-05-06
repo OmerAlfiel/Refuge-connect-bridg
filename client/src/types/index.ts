@@ -31,6 +31,7 @@ export type NeedCategory =
   | 'translation'
   | 'transportation'
   | 'clothing'
+  | 'housing'
   | 'other';
 
 export type NeedStatus = 'open' | 'matched' | 'fulfilled' | 'closed';
@@ -64,9 +65,11 @@ export type OfferCategory =
   | 'employment'
   | 'translation'
   | 'transportation'
+  | 'housing'
   | 'other';
 
-export type OfferStatus = 'active' | 'paused' | 'ended' | 'deleted';
+
+export type OfferStatus = 'active' | 'paused' | 'cancelled' | 'completed'; 
 
 export interface Offer {
   id: string;
@@ -195,6 +198,42 @@ export interface NeedsQueryParams {
   urgent?: boolean;
   status?: NeedStatus;
   search?: string;
+  userId?: string;
+}
+
+
+
+export type MatchStatus = 'pending' | 'accepted' | 'rejected' | 'completed';
+
+export interface Match {
+  id: string;
+  needId: string;
+  offerId: string;
+  need?: Need;
+  offer?: Offer;
+  status: MatchStatus;
+  message?: string;
+  initiatedBy: string; // userId
+  respondedBy?: string; // userId
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface CreateMatchRequest {
+  needId: string | null;
+  offerId: string | null;
+  message?: string;
+}
+
+export interface UpdateMatchRequest {
+  status: MatchStatus;
+  message?: string;
+}
+
+export interface MatchesQueryParams {
+  status?: MatchStatus;
+  needId?: string;
+  offerId?: string;
 }
 
 

@@ -22,6 +22,7 @@ import Messages from "./pages/Messages";
 import Notifications from "./pages/Notifications";
 import { StrictMode } from "react";
 import ScrollToTop from "./components/ScrollToTop";
+import Matches from "./pages/Matches";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/about" element={<About />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/matches" element={<Matches />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -1,17 +1,26 @@
-
 import React from 'react';
 import { User } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, FileText, MessageCircle, CheckCircle } from 'lucide-react';
+import { Plus, FileText, MessageCircle, CheckCircle, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useUserMatches } from '@/hooks/use-matches';
 
 interface VolunteerDashboardProps {
   user: User | null;
 }
 
 const VolunteerDashboard: React.FC<VolunteerDashboardProps> = ({ user }) => {
+  // Use the matches hook to get match data
+  const { data: userMatches = [] } = useUserMatches();
+  
+  // Count matches by status
+  const pendingMatches = userMatches.filter(m => m.status === 'pending').length;
+  const acceptedMatches = userMatches.filter(m => m.status === 'accepted').length;
+  const completedMatches = userMatches.filter(m => m.status === 'completed').length;
+  const rejectedMatches = userMatches.filter(m => m.status === 'rejected').length;
+
   const activeOffers = [
     {
       id: '1',
@@ -59,7 +68,7 @@ const VolunteerDashboard: React.FC<VolunteerDashboardProps> = ({ user }) => {
   return (
     <div className="space-y-8">
       {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Active Offers</CardTitle>
@@ -87,6 +96,39 @@ const VolunteerDashboard: React.FC<VolunteerDashboardProps> = ({ user }) => {
             <p className="text-xs text-muted-foreground mt-1">All read</p>
           </CardContent>
         </Card>
+        {/* New Match Statistics Card */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Match Statistics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-yellow-300"></div>
+                <span className="text-sm">Pending: {pendingMatches}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                <span className="text-sm">Accepted: {acceptedMatches}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-blue-500"></div>
+                <span className="text-sm">Completed: {completedMatches}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                <span className="text-sm">Declined: {rejectedMatches}</span>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="pt-0">
+            <Button variant="outline" size="sm" className="w-full" asChild>
+              <Link to="/matches">
+                <Clock className="h-4 w-4 mr-2" /> Match History
+              </Link>
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
 
       {/* Main Content */}
@@ -94,6 +136,7 @@ const VolunteerDashboard: React.FC<VolunteerDashboardProps> = ({ user }) => {
         <TabsList className="w-full md:w-auto grid grid-cols-2 md:inline-flex max-w-md">
           <TabsTrigger value="offers">My Offers</TabsTrigger>
           <TabsTrigger value="needs">Matching Needs</TabsTrigger>
+          <TabsTrigger value="matches">Recent Matches</TabsTrigger>
         </TabsList>
         <TabsContent value="offers" className="space-y-4">
           <div className="flex justify-between items-center">
@@ -171,6 +214,57 @@ const VolunteerDashboard: React.FC<VolunteerDashboardProps> = ({ user }) => {
             </Card>
           ))}
         </TabsContent>
+        {/* New Matches Tab */}
+        <TabsContent value="matches" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Your Recent Matches</h2>
+            <Button variant="outline" asChild>
+              <Link to="/matches">View All</Link>
+            </Button>
+          </div>
+          
+          {userMatches.length > 0 ? (
+            userMatches.slice(0, 3).map((match) => (
+              <Card key={match.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium">
+                      {match.need?.title || "Need"} + {match.offer?.title || "Offer"}
+                    </h3>
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      match.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      match.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                      match.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                      match.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+                    </span>
+                  </div>
+                  <div className="text-sm text-muted-foreground mb-3">
+                    {match.message && (
+                      <p className="italic">"{match.message.length > 60 ? match.message.substring(0, 60) + '...' : match.message}"</p>
+                    )}
+                  </div>
+                  <div className="flex justify-end">
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to={`/matches?id=${match.id}`}>
+                        View Details
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No matches found</p>
+              <Button variant="outline" className="mt-4" asChild>
+                <Link to="/needs">Find Needs to Help With</Link>
+              </Button>
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Impact Section */}
@@ -192,6 +286,10 @@ const VolunteerDashboard: React.FC<VolunteerDashboardProps> = ({ user }) => {
             <div className="flex-1 bg-muted rounded-lg p-4 text-center">
               <p className="text-3xl font-bold text-volunteer-600">4</p>
               <p className="text-sm text-muted-foreground">Resources donated</p>
+            </div>
+            <div className="flex-1 bg-muted rounded-lg p-4 text-center">
+              <p className="text-3xl font-bold text-volunteer-600">{completedMatches}</p>
+              <p className="text-sm text-muted-foreground">Matches completed</p>
             </div>
           </div>
         </CardContent>

@@ -4,7 +4,7 @@ import Footer from './Footer';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { MapPin, FileText, Bell, Search, Settings, MessageCircle, Heart } from 'lucide-react';
+import { MapPin, FileText, Bell, Search, Settings, MessageCircle, Heart, CheckCircle } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -34,6 +34,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       className={`${isActive('/dashboard') ? 'bg-primary text-primary-foreground' : ''}`}
                     >
                       Dashboard
+                    </Button>
+                  </Link>
+                </li>
+                
+                <li>
+                  <Link to="/matches">
+                    <Button 
+                      variant={isActive('/matches') ? "default" : "ghost"}
+                      size="sm" 
+                      className={`flex items-center gap-1 ${isActive('/matches') ? 'bg-primary text-primary-foreground' : ''}`}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      <span>Matches</span>
                     </Button>
                   </Link>
                 </li>

@@ -1,13 +1,14 @@
 export enum NeedCategory {
   SHELTER = 'shelter',
-  FOOD = 'food',
+  FOOD = 'food', 
   MEDICAL = 'medical',
   LEGAL = 'legal',
   EDUCATION = 'education',
   EMPLOYMENT = 'employment',
-  TRANSLATION = 'translation',
+  TRANSLATION = 'translation', 
   TRANSPORTATION = 'transportation',
   CLOTHING = 'clothing',
+  HOUSING = 'housing',
   OTHER = 'other',
 }
 

@@ -1,18 +1,33 @@
-
 import React from 'react';
 import { User } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, FileText, MessageCircle, Bell, Users, Calendar, CheckCircle, Filter } from 'lucide-react';
+import { Plus, FileText, MessageCircle, Bell, Users, Calendar, CheckCircle, Filter, PieChart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Progress } from "@/components/ui/progress";
+import { useUserMatches } from '@/hooks/use-matches';
 
 interface NgoDashboardProps {
   user: User | null;
 }
 
 const NgoDashboard: React.FC<NgoDashboardProps> = ({ user }) => {
+  // Use the matches hook to get match data
+  const { data: userMatches = [] } = useUserMatches();
+  
+  // Calculate match metrics
+  const totalMatches = userMatches.length;
+  const pendingMatchesCount = userMatches.filter(m => m.status === 'pending').length;
+  const acceptedMatchesCount = userMatches.filter(m => m.status === 'accepted').length;
+  const completedMatchesCount = userMatches.filter(m => m.status === 'completed').length;
+  const rejectedMatchesCount = userMatches.filter(m => m.status === 'rejected').length;
+  
+  // Calculate success rate
+  const successRate = totalMatches > 0 
+    ? Math.round((acceptedMatchesCount + completedMatchesCount) / totalMatches * 100) 
+    : 0;
+
   const needsByCategory = [
     { category: 'Shelter', count: 18 },
     { category: 'Food', count: 12 },
@@ -146,37 +161,109 @@ const NgoDashboard: React.FC<NgoDashboardProps> = ({ user }) => {
           </CardFooter>
         </Card>
 
-        {/* Recent Matches */}
+        {/* Match Statistics Card - NEW */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Matches</CardTitle>
-            <CardDescription>Successfully connected needs with offers</CardDescription>
+            <CardTitle className="flex items-center justify-between">
+              <span>Match Statistics</span>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/matches">
+                  <PieChart className="h-4 w-4 mr-2" /> Full View
+                </Link>
+              </Button>
+            </CardTitle>
+            <CardDescription>Analysis of match outcomes</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {recentMatches.map((match) => (
-              <div key={match.id} className="flex items-start gap-4 p-3 rounded-lg border">
-                <div className="h-8 w-8 rounded-full bg-ngo-100 text-ngo-700 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4" />
+          <CardContent>
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-muted rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-ngo-600">{totalMatches}</p>
+                  <p className="text-sm text-muted-foreground">Total Matches</p>
                 </div>
-                <div>
-                  <div className="font-medium">{match.need}</div>
-                  <div className="text-sm text-muted-foreground">
-                    <span className="text-ngo-600">{match.refugee}</span> + <span className="text-volunteer-600">{match.volunteer}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Matched on {match.date.toLocaleDateString()}
-                  </div>
+                <div className="bg-muted rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-green-600">{successRate}%</p>
+                  <p className="text-sm text-muted-foreground">Success Rate</p>
                 </div>
               </div>
-            ))}
+              
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full bg-yellow-400"></div>
+                      <span className="text-sm font-medium">Pending</span>
+                    </div>
+                    <span className="text-sm">{pendingMatchesCount}</span>
+                  </div>
+                  <Progress value={(pendingMatchesCount / (totalMatches || 1)) * 100} className="h-2 bg-yellow-100" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                      <span className="text-sm font-medium">Accepted</span>
+                    </div>
+                    <span className="text-sm">{acceptedMatchesCount}</span>
+                  </div>
+                  <Progress value={(acceptedMatchesCount / (totalMatches || 1)) * 100} className="h-2 bg-green-100" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full bg-blue-500"></div>
+                      <span className="text-sm font-medium">Completed</span>
+                    </div>
+                    <span className="text-sm">{completedMatchesCount}</span>
+                  </div>
+                  <Progress value={(completedMatchesCount / (totalMatches || 1)) * 100} className="h-2 bg-blue-100" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                      <span className="text-sm font-medium">Declined</span>
+                    </div>
+                    <span className="text-sm">{rejectedMatchesCount}</span>
+                  </div>
+                  <Progress value={(rejectedMatchesCount / (totalMatches || 1)) * 100} className="h-2 bg-red-100" />
+                </div>
+              </div>
+            </div>
           </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full">
-              View All Matches
-            </Button>
-          </CardFooter>
         </Card>
       </div>
+
+      {/* Recent Matches */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Matches</CardTitle>
+          <CardDescription>Successfully connected needs with offers</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {recentMatches.map((match) => (
+            <div key={match.id} className="flex items-start gap-4 p-3 rounded-lg border">
+              <div className="h-8 w-8 rounded-full bg-ngo-100 text-ngo-700 flex items-center justify-center">
+                <CheckCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="font-medium">{match.need}</div>
+                <div className="text-sm text-muted-foreground">
+                  <span className="text-ngo-600">{match.refugee}</span> + <span className="text-volunteer-600">{match.volunteer}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Matched on {match.date.toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+        <CardFooter>
+          <Button variant="outline" className="w-full" asChild>
+            <Link to="/matches">View All Matches</Link>
+          </Button>
+        </CardFooter>
+      </Card>
 
       {/* Upcoming Events */}
       <Card>

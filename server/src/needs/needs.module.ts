@@ -5,7 +5,7 @@ import { NeedsController } from './needs.controller';
 import { Need } from './entities/need.entity';
 
 import { JwtStrategy } from '../auth/strategies/jwt.strategy';
-import { RolesGuard } from 'src/auth/guards/roles.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Need])],

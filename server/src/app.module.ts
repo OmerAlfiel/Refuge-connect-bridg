@@ -3,7 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { ConfigModule } from './config/config.module';
+import { ConfigModule as LocalConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { DataSource } from 'typeorm';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -12,17 +12,31 @@ import { NeedsModule } from './needs/needs.module';
 import { Need } from './needs/entities/need.entity';
 import { OffersModule } from './offers/offers.module';
 import { Offer } from './offers/entities/offer.entity';
+import { MatchesModule } from './matches/matches.module';
+import { Match } from './matches/entities/match.entity';
+import configuration from './config/configuration';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    ConfigModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [configuration],
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => configService.get('database'),
+    }),
+    LocalConfigModule,
     DatabaseModule,
     // Add TypeOrmModule.forFeature here to ensure User entity is registered
-    TypeOrmModule.forFeature([User, Need, Offer]),
+    TypeOrmModule.forFeature([User, Need, Offer, Match]),
     AuthModule,
     UsersModule,
     NeedsModule,
     OffersModule,
+    MatchesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -7,7 +7,9 @@ export enum OfferCategory {
   EMPLOYMENT = 'employment',
   TRANSLATION = 'translation',
   TRANSPORTATION = 'transportation',
-  OTHER = 'other'
+  CLOTHING = 'clothing',
+  HOUSING = 'housing',
+  OTHER = 'other',
 }
 export enum OfferStatus {
   ACTIVE = 'active',

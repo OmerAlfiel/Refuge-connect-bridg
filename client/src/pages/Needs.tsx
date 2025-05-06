@@ -30,6 +30,8 @@ import {
   useUpdateNeedStatus
 } from '@/hooks/use-needs';
 import { NeedCategory, NeedStatus } from '@/types';
+import { useCreateMatch } from '@/hooks/use-matches';
+import { NeedDetail } from '@/components/NeedDetail';
 
 const Needs: React.FC = () => {
   const { user } = useAuth();
@@ -39,6 +41,9 @@ const Needs: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedNeedId, setSelectedNeedId] = useState<string | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const createMatchMutation = useCreateMatch();
   
   // Fetch needs with filter params
   const { data: needs, isLoading: isLoadingNeeds } = useNeeds({
@@ -55,6 +60,7 @@ const Needs: React.FC = () => {
   const updateNeedMutation = useUpdateNeed();
   const deleteNeedMutation = useDeleteNeed();
   const updateNeedStatusMutation = useUpdateNeedStatus();
+  const selectedNeed = selectedNeedId ? needs?.find(need => need.id === selectedNeedId) : null;
 
   const [newNeed, setNewNeed] = useState({
     title: '',
@@ -77,6 +83,39 @@ const Needs: React.FC = () => {
     { value: 'transportation', label: 'Transportation' },
     { value: 'other', label: 'Other' },
   ];
+
+  const handleOfferHelp = async (needId: string, message: string) => {
+    try {
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to offer help",
+          variant: "destructive",
+        });
+        return Promise.reject("User not authenticated");
+      }
+      
+      await createMatchMutation.mutateAsync({
+        needId: needId,
+        offerId: null, // Direct match without a specific offer
+        message: message,
+      });
+      
+      toast({
+        title: "Help offered",
+        description: "Your offer has been sent to the person in need.",
+      });
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Error offering help:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send offer. Please try again.",
+        variant: "destructive",
+      });
+      return Promise.reject(error);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -370,9 +409,16 @@ const Needs: React.FC = () => {
                         <Button variant="ghost" size="sm" className="text-muted-foreground">
                           View Details
                         </Button>
-                        <Button variant="outline" size="sm">
-                          <MessageSquare className="h-4 w-4 mr-1" /> Offer Help
-                        </Button>
+                        <Button 
+  variant="outline" 
+  size="sm"
+  onClick={() => {
+    setSelectedNeedId(need.id);
+    setIsDetailDialogOpen(true);
+  }}
+>
+  <MessageSquare className="h-4 w-4 mr-1" /> Offer Help
+</Button>
                       </div>
                     </CardFooter>
                   </Card>
@@ -473,6 +519,7 @@ const Needs: React.FC = () => {
                         </Button>
                       </DialogTrigger>
                       {/* Use the same dialog content as above */}
+                      
                     </Dialog>
                   </div>
                 )}
@@ -491,6 +538,14 @@ const Needs: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
+      {selectedNeed && (
+        <NeedDetail
+          need={selectedNeed}
+          isOpen={isDetailDialogOpen}
+          onClose={() => setIsDetailDialogOpen(false)}
+          onOfferHelp={handleOfferHelp}
+        />
+      )}
     </Layout>
   );
 };

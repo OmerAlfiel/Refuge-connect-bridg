@@ -1,392 +1,359 @@
-import React, { useState, useRef, FormEvent } from 'react';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { useOffers, useCreateOffer, useUpdateOffer, useDeleteOffer, useUserOffers } from '@/hooks/use-offers';
+import { CreateOfferRequest, OfferCategory, OfferStatus } from '@/types';
 import Layout from '@/components/Layout';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Heart, Home, MapPin, FileText, MessageCircle, Filter, Plus, Mail, Phone, ExternalLink, Loader2, Search } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
-import MapComponent, { MapComponentRef } from '@/components/MapComponent';
-import { useAuth } from '@/context/AuthContext';
-import { useOffers, useCreateOffer, useOfferById, useDeleteOffer } from '@/hooks/use-offers';
-import { CreateOfferRequest, OfferCategory } from '@/types';
-
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Search, Filter, Plus, Loader2, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
-import OfferCard from '@/components/OfferCard';
+import { OfferDetail } from '@/components/OfferDetail';
+import { useCreateMatch } from '@/hooks/use-matches';
 
 
 const Offers: React.FC = () => {
-  const [category, setCategory] = useState<string>('all');
-  const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
-  const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [formData, setFormData] = useState<CreateOfferRequest>({
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const createMatchMutation = useCreateMatch();
+  
+  // Form state for creating a new offer
+  const [newOffer, setNewOffer] = useState<{
+    title: string;
+    description: string;
+    category: string;
+    location: string;
+  }>({
     title: '',
     description: '',
     category: 'shelter',
-    location: {
-      lat: 0,
-      lng: 0,
-    },
-    contact: {
-      name: '',
-      phone: '',
-      email: '',
-      website: ''
-    }
+    location: '',
   });
-
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const mapRef = useRef<MapComponentRef>(null);
-  const { isAuthenticated, user } = useAuth();
   
-  // Fetch offers with optional category filter
-  const offersQueryParams = category !== 'all' ? { category: category as OfferCategory } : undefined;
+  // Fetch offers with filter params
+  const offersQueryParams = selectedCategory !== 'all' ? { category: selectedCategory as OfferCategory } : undefined;
   const { data: offers = [], isLoading, isError } = useOffers(offersQueryParams);
   
-  // Get selected offer details when dialog is open
-  const { data: selectedOffer } = useOfferById(selectedOfferId || '');
+  // Get user's offers for the "My Offers" tab
+  const { data: userOffers = [], isLoading: isLoadingUserOffers } = useUserOffers();
   
-  // Create and delete offer mutations
+  // Find selected offer when dialog is open
+  const selectedOffer = selectedOfferId ? offers.find(offer => offer.id === selectedOfferId) : null;
+  
+  // Mutations
   const createOfferMutation = useCreateOffer();
+  const updateOfferMutation = useUpdateOffer();
   const deleteOfferMutation = useDeleteOffer();
-
+  
   // Categories for filter dropdown
   const categories = [
     { value: 'all', label: 'All Categories' },
     { value: 'shelter', label: 'Shelter' },
+    { value: 'housing', label: 'Housing' },
     { value: 'food', label: 'Food' },
     { value: 'medical', label: 'Medical' },
     { value: 'legal', label: 'Legal' },
     { value: 'education', label: 'Education' },
     { value: 'translation', label: 'Translation' },
+    { value: 'clothing', label: 'Clothing' },
     { value: 'transportation', label: 'Transportation' },
     { value: 'employment', label: 'Employment' },
     { value: 'other', label: 'Other' },
   ];
-
-  // Open contact dialog for an offer
-  const handleContact = (offerId: string) => {
-    setSelectedOfferId(offerId);
-    setIsContactDialogOpen(true);
-  };
   
-  // Open location dialog for an offer
-  const handleViewLocation = (offerId: string) => {
-    setSelectedOfferId(offerId);
-    setIsLocationDialogOpen(true);
-  };
+  // Filter offers based on search query
+  const filteredOffers = offers.filter(
+    (offer) =>
+      (searchQuery === '' ||
+        offer.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        offer.description.toLowerCase().includes(searchQuery.toLowerCase())) &&
+      (selectedCategory === 'all' || offer.category === selectedCategory)
+  );
   
-  // Navigate to resource map with selected offer
-  const handleGoToResourceMap = (offerId: string) => {
-    if (selectedOffer) {
-      localStorage.setItem('selectedLocation', JSON.stringify({
-        id: selectedOffer.id,
-        name: selectedOffer.title,
-        coordinates: {
-          lat: selectedOffer.location?.lat || 0,
-          lng: selectedOffer.location?.lng || 0
-        },
-        description: selectedOffer.description,
-        type: selectedOffer.category
-      }));
-      
-      navigate('/resources');
-    }
-  };
-  
-  // Handle form input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { id, value } = e.target;
-    
-    if (id.includes('.')) {
-      // Handle nested properties
-      const [parent, child] = id.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...(prev[parent as keyof CreateOfferRequest] as object || {}),
-          [child]: value
-        }
-      }));
-    } else {
-      // Handle top-level properties
-      setFormData(prev => ({
-        ...prev,
-        [id]: value
-      }));
-    }
-  };
-  
-  // Update your handleCreateOffer function to fix the contact structure
-  const handleCreateOffer = async (event: FormEvent) => {
-    event.preventDefault();
-    console.log("Original form data:", formData);
-    
-    // Create a modified version without the problematic property
-    const offerData = {
-      ...formData,
-      location: {
-        ...formData.location,
-        lat: formData.location?.lat || 0,
-        lng: formData.location?.lng || 0,
-        city: formData.location?.city || '',
-        country: formData.location?.country || ''
-      },
-      // Fix the contact object structure - remove the name property
-      contact: {
-        // Remove name property
-        phone: formData.contact?.phone || '',
-        email: formData.contact?.email || '',
-        website: formData.contact?.website || ''
-      }
-    };
-    
-    console.log("Modified form data:", offerData);
+  // Handler for creating a new offer
+  const handleCreateOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
     
     try {
-      await createOfferMutation.mutateAsync(offerData);
-      toast({
-        title: "Offer created",
-        description: "Your offer has been published successfully.",
+      await createOfferMutation.mutateAsync({
+        title: newOffer.title,
+        description: newOffer.description,
+        category: newOffer.category as OfferCategory,
+        location: newOffer.location ? {
+          lat: 0,
+          lng: 0,
+          address: newOffer.location,
+          city: newOffer.location.split(',')[0]?.trim() || '',
+          country: newOffer.location.split(',')[1]?.trim() || ''
+        } : undefined,
+        
+        contact: {
+          // Safe access for phone property
+          phone: user?.contact && typeof user.contact === 'object' ? 
+            // Now TypeScript knows user.contact is non-null and an object
+            'phone' in (user.contact as Record<string, unknown>) ? String((user.contact as Record<string, unknown>).phone || '') : '' 
+            : '',
+            
+          // Safe access for email property
+          email: user?.contact && typeof user.contact === 'object' ? 
+            'email' in (user.contact as Record<string, unknown>) ? String((user.contact as Record<string, unknown>).email || '') : ''
+            : '',
+            
+          website: ''
+        }
       });
-      // Reset form
-      setFormData({
+
+      toast({
+        title: "Offer created successfully",
+        description: "Your offer has been published and is now visible to those in need.",
+      });
+
+      // Reset form & close dialog
+      setNewOffer({
         title: '',
         description: '',
         category: 'shelter',
-        location: { lat: 0, lng: 0 },
-        contact: {}
+        location: '',
       });
       setIsDialogOpen(false);
     } catch (error) {
-      console.error("Form submission error:", error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create offer. Please try again.",
-        variant: "destructive"
+        title: "Error creating offer",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
       });
     }
   };
-
-  const handleDeleteOffer = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this offer?')) {
-      try {
-        await deleteOfferMutation.mutateAsync(id);
-        toast({
-          title: "Offer deleted",
-          description: "Your offer has been deleted successfully.",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete offer. Please try again.",
-          variant: "destructive"
-        });
-      }
+  
+  // Handler for updating offer status
+  const handleUpdateStatus = async (offerId: string, status: OfferStatus) => {
+    try {
+      await updateOfferMutation.mutateAsync({
+        id: offerId,
+        offer: { status }
+      });
+      
+      toast({
+        title: "Offer updated",
+        description: `Your offer has been ${status === 'cancelled' ? 'cancelled' : 'marked as ' + status}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating offer",
+        description: "Failed to update offer status. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   
-  // Format date for display
-  const formatDate = (dateString: string | Date) => {
-    const date = new Date(dateString);
-    return format(date, 'PP');
+  // Handler for deleting an offer
+  const handleDeleteOffer = async (offerId: string) => {
+    if (!confirm("Are you sure you want to delete this offer? This cannot be undone.")) {
+      return;
+    }
+    
+    try {
+      await deleteOfferMutation.mutateAsync(offerId);
+      
+      toast({
+        title: "Offer deleted",
+        description: "Your offer has been deleted successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error deleting offer",
+        description: "Failed to delete offer. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
-
-  // Set dialog open state
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  // Filter offers based on search term
-  const filteredOffers = offers.filter(offer => 
-    search === '' || 
-    offer.title.toLowerCase().includes(search.toLowerCase()) ||
-    offer.description.toLowerCase().includes(search.toLowerCase()) ||
-    (offer.location?.city && offer.location.city.toLowerCase().includes(search.toLowerCase())) ||
-    (offer.location?.country && offer.location.country.toLowerCase().includes(search.toLowerCase()))
-  );
+  // Replace the handleRequestMatch function with this implementation
+  const handleRequestMatch = async (offerId: string, message: string) => {
+    try {
+      // Call the actual API to create a match
+      if (!user) return Promise.reject("User not authenticated");
+      
+      // Import createMatchMutation at the top of your component
+      await createMatchMutation.mutateAsync({
+        needId: null, // Direct match request without a specific need
+        offerId: offerId,
+        message: message,
+      });
+      
+      toast({
+        title: "Match requested",
+        description: "Your request has been sent to the offer provider.",
+      });
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Error requesting match:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create match. Please try again.",
+        variant: "destructive",
+      });
+      return Promise.reject(error);
+    }
+  };
+  
+  
+  
+  
+  // Helper function to get category badge color
+  const getCategoryBadgeColor = (category: string) => {
+    switch(category) {
+      case 'shelter': return 'bg-blue-100 text-blue-800';
+      case 'food': return 'bg-green-100 text-green-800';
+      case 'medical': return 'bg-red-100 text-red-800';
+      case 'legal': return 'bg-purple-100 text-purple-800';
+      case 'education': return 'bg-yellow-100 text-yellow-800';
+      case 'translation': return 'bg-indigo-100 text-indigo-800';
+      case 'employment': return 'bg-orange-100 text-orange-800';
+      case 'clothing': return 'bg-pink-100 text-pink-800';
+      case 'transportation': return 'bg-cyan-100 text-cyan-800';
+      case 'housing': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
     <Layout>
-      <div className="container px-4 md:px-6 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div className="container px-4 py-8">
+        <div className="flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Available Offers</h1>
-            <p className="text-muted-foreground mt-1">
-              Browse support and resources offered by volunteers and organizations
+            <h1 className="text-3xl font-bold tracking-tight">Offers</h1>
+            <p className="text-muted-foreground">
+              Browse support and services provided by volunteers and organizations
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {isAuthenticated && (user?.role === 'volunteer' || user?.role === 'ngo') && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Create Offer
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
-                  <form onSubmit={handleCreateOffer}>
-                    <DialogHeader>
-                      <DialogTitle>Create New Offer</DialogTitle>
-                      <DialogDescription>
-                        Share your resources or services to help refugees in need
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-3 py-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="grid gap-1">
-                          <label htmlFor="title" className="text-sm font-medium">Title</label>
-                          <Input 
-                            id="title" 
-                            value={formData.title}
-                            onChange={handleInputChange}
-                            placeholder="Enter offer title" 
-                            required 
-                          />
-                        </div>
-                        <div className="grid gap-1">
-                          <label htmlFor="category" className="text-sm font-medium">Category</label>
-                          <Select 
-                            value={formData.category} 
-                            onValueChange={(value) => setFormData(prev => ({ ...prev, category: value as OfferCategory }))}
-                          >
-                            <SelectTrigger id="category">
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categories.slice(1).map((cat) => (
-                                <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="grid gap-1">
-                          <label htmlFor="location.city" className="text-sm font-medium">City</label>
-                          <Input 
-                            id="location.city" 
-                            value={formData.location?.city || ''} 
-                            onChange={handleInputChange}
-                            placeholder="City" 
-                          />
-                        </div>
-                        <div className="grid gap-1">
-                          <label htmlFor="location.country" className="text-sm font-medium">Country</label>
-                          <Input 
-                            id="location.country" 
-                            value={formData.location?.country || ''} 
-                            onChange={handleInputChange}
-                            placeholder="Country" 
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid gap-1">
-                        <label htmlFor="description" className="text-sm font-medium">Description</label>
-                        <textarea 
-                          id="description" 
-                          value={formData.description}
-                          onChange={handleInputChange}
-                          className="min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                          placeholder="Describe your offer in detail"
-                          required
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="grid gap-1">
-                          <label htmlFor="contact.name" className="text-sm font-medium">Contact Name</label>
-                          <Input 
-                            id="contact.name" 
-                            value={formData.contact?.name || ''}
-                            onChange={handleInputChange}
-                            placeholder="Contact name" 
-                          />
-                        </div>
-                        <div className="grid gap-1">
-                          <label htmlFor="contact.phone" className="text-sm font-medium">Phone</label>
-                          <Input 
-                            id="contact.phone" 
-                            value={formData.contact?.phone || ''}
-                            onChange={handleInputChange}
-                            placeholder="Phone number" 
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="grid gap-1">
-                          <label htmlFor="contact.email" className="text-sm font-medium">Email</label>
-                          <Input 
-                            id="contact.email" 
-                            type="email"
-                            value={formData.contact?.email || ''}
-                            onChange={handleInputChange}
-                            placeholder="Email address" 
-                          />
-                        </div>
-                        <div className="grid gap-1">
-                          <label htmlFor="contact.website" className="text-sm font-medium">Website</label>
-                          <Input 
-                            id="contact.website" 
-                            value={formData.contact?.website || ''}
-                            onChange={handleInputChange}
-                            placeholder="Website URL" 
-                          />
-                        </div>
-                      </div>
+          
+          {user && (user.role === 'volunteer' || user.role === 'ngo') && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" /> Create Offer
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Create New Offer</DialogTitle>
+                  <DialogDescription>
+                    Share your resources or services to help refugees in need
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateOffer}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <label htmlFor="title" className="text-sm font-medium">Title</label>
+                      <Input
+                        id="title"
+                        value={newOffer.title}
+                        onChange={(e) => setNewOffer(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Brief title of your offer"
+                        required
+                      />
                     </div>
-                    <DialogFooter>
-                      <Button 
-                        type="submit" 
-                        disabled={createOfferMutation.isPending}
+                    
+                    <div className="grid gap-2">
+                      <label htmlFor="category" className="text-sm font-medium">Category</label>
+                      <Select
+                        value={newOffer.category}
+                        onValueChange={(value) => setNewOffer(prev => ({ ...prev, category: value }))}
                       >
-                        {createOfferMutation.isPending && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        Publish Offer
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            )}
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.slice(1).map((cat) => (
+                            <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <label htmlFor="location" className="text-sm font-medium">Location</label>
+                      <Input
+                        id="location"
+                        value={newOffer.location}
+                        onChange={(e) => setNewOffer(prev => ({ ...prev, location: e.target.value }))}
+                        placeholder="City, Country"
+                      />
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <label htmlFor="description" className="text-sm font-medium">Description</label>
+                      <textarea
+                        id="description"
+                        value={newOffer.description}
+                        onChange={(e) => setNewOffer(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Describe your offer in detail..."
+                        rows={4}
+                        className="min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button 
+                      type="submit" 
+                      disabled={createOfferMutation.isPending}
+                    >
+                      {createOfferMutation.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Publish Offer
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-4 my-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search offers..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
+          
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-full md:w-[180px]">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
-        <div className="mb-6 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search offers..."
-            className="pl-10 max-w-md"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        
-        <Tabs defaultValue="all" className="mb-8">
-          <TabsList className="w-full md:w-auto grid grid-cols-3 md:inline-flex max-w-md">
-            <TabsTrigger value="all">All Offers</TabsTrigger>
-            <TabsTrigger value="nearby">Nearby</TabsTrigger>
-            <TabsTrigger value="recent">Recently Added</TabsTrigger>
+        <Tabs defaultValue="all-offers" className="mb-8">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="all-offers">All Offers</TabsTrigger>
+            {user && <TabsTrigger value="my-offers">My Offers</TabsTrigger>}
           </TabsList>
-          <TabsContent value="all" className="mt-4">
+          
+          <TabsContent value="all-offers" className="space-y-4">
             {isLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -398,250 +365,195 @@ const Offers: React.FC = () => {
               </div>
             ) : filteredOffers.length > 0 ? (
               <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {filteredOffers.map(offer => (
-                  <OfferCard key={offer.id} offer={offer} onContact={handleContact} />
+                {filteredOffers.map((offer) => (
+                  <Card key={offer.id}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between">
+                        <CardTitle className="text-lg">{offer.title}</CardTitle>
+                        <Badge className={getCategoryBadgeColor(offer.category)}>
+                          {offer.category}
+                        </Badge>
+                      </div>
+                      <CardDescription>
+                        {offer.location?.city}, {offer.location?.country}
+                      </CardDescription>
+                    </CardHeader>
+                    
+                    <CardContent>
+                      <div className="line-clamp-2 text-sm mb-2">
+                        {offer.description}
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800">
+                          Posted {format(new Date(offer.createdAt), 'PP')}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Posted by: {offer.user?.name || 'Anonymous'}
+                      </p>
+                    </CardContent>
+                    
+                    <CardFooter className="pt-0">
+                      <div className="w-full flex justify-between">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-muted-foreground"
+                          onClick={() => {
+                            setSelectedOfferId(offer.id);
+                            setIsDetailDialogOpen(true);
+                          }}
+                        >
+                          View Details
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedOfferId(offer.id);
+                            setIsDetailDialogOpen(true);
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-1" /> Contact
+                        </Button>
+                      </div>
+                    </CardFooter>
+                  </Card>
                 ))}
               </div>
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground mb-4">No offers found matching your filters.</p>
                 <Button variant="outline" onClick={() => {
-                  setCategory('all');
-                  setSearch('');
+                  setSelectedCategory('all');
+                  setSearchQuery('');
                 }}>
                   <Filter className="mr-2 h-4 w-4" /> Clear Filters
                 </Button>
               </div>
             )}
           </TabsContent>
-          <TabsContent value="nearby" className="mt-4">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">Enable location services to see nearby offers.</p>
-              <Button>
-                <MapPin className="mr-2 h-4 w-4" /> Enable Location
-              </Button>
-            </div>
-          </TabsContent>
-          <TabsContent value="recent" className="mt-4">
-            {isLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          
+          <TabsContent value="my-offers" className="space-y-4">
+            {user ? (
+              <div>
+                {isLoadingUserOffers ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : userOffers.length > 0 ? (
+                  <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    {userOffers.map((offer) => (
+                      <Card key={offer.id}>
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between">
+                            <div>
+                              <CardTitle className="text-lg">{offer.title}</CardTitle>
+                              <CardDescription className="flex items-center gap-2">
+                                <Badge className={getCategoryBadgeColor(offer.category)}>
+                                  {offer.category}
+                                </Badge>
+                                <Badge
+                                  className={
+                                    offer.status === 'active'
+                                      ? 'bg-green-100 text-green-800'
+                                      : offer.status === 'paused'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                  }
+                                >
+                                  {offer.status}
+                                </Badge>
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        
+                        <CardContent>
+                          <div className="line-clamp-2 text-sm mb-2">
+                            {offer.description}
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800">
+                              Posted {format(new Date(offer.createdAt), 'PP')}
+                            </span>
+                          </div>
+                        </CardContent>
+                        
+                        <CardFooter className="pt-0">
+                          <div className="w-full flex flex-col gap-2">
+                            <div className="w-full">
+                              {offer.status === 'active' && (
+                                <Select
+                                  onValueChange={(value) => handleUpdateStatus(offer.id, value as OfferStatus)}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Update Status" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="paused">Pause Offer</SelectItem>
+                                    <SelectItem value="completed">Mark as Completed</SelectItem>
+                                    <SelectItem value="cancelled">Cancel Offer</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-destructive"
+                              onClick={() => handleDeleteOffer(offer.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-xl font-medium mb-2">You haven't created any offers yet</div>
+                    <p className="text-muted-foreground mb-6">
+                      Create an offer to help refugees and those in need.
+                    </p>
+                    <DialogTrigger asChild>
+                      <Button onClick={() => setIsDialogOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Your First Offer
+                      </Button>
+                    </DialogTrigger>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {filteredOffers
-                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                  .slice(0, 6)
-                  .map(offer => (
-                    <OfferCard key={offer.id} offer={offer} onContact={handleContact} />
-                  ))}
+              <div className="text-center py-12">
+                <div className="text-xl font-medium mb-2">Sign in to manage your offers</div>
+                <p className="text-muted-foreground mb-6">
+                  Create an account or sign in to create and manage your offers.
+                </p>
+                <Button onClick={() => navigate('/login')}>
+                  Sign In
+                </Button>
               </div>
             )}
           </TabsContent>
-          
-          {isAuthenticated && (user?.role === 'volunteer' || user?.role === 'ngo') && (
-            <TabsContent value="my-offers" className="mt-4">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Your Offers</h2>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" /> Create Offer
-                    </Button>
-                  </DialogTrigger>
-                  {/* Dialog content is defined above */}
-                </Dialog>
-              </div>
-              
-              {/* User's offers will be displayed here */}
-              {/* We would need to add useUserOffers() hook here */}
-            </TabsContent>
-          )}
         </Tabs>
+        
+        {/* Offer Details Dialog */}
+        {selectedOffer && (
+          <OfferDetail
+            offer={selectedOffer}
+            isOpen={isDetailDialogOpen}
+            onClose={() => setIsDetailDialogOpen(false)}
+            onRequestMatch={handleRequestMatch}
+          />
+        )}
       </div>
-
-      {/* Contact Dialog */}
-      <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Contact {selectedOffer?.user?.name}</DialogTitle>
-            <DialogDescription>
-              Reach out regarding: {selectedOffer?.title}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            {selectedOffer && (
-              <>
-                <div className="space-y-2 border-b pb-4">
-                  <h3 className="text-sm font-medium">Direct Contact</h3>
-                  
-                  {selectedOffer.contact?.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedOffer.contact.phone}</span>
-                    </div>
-                  )}
-                  
-                  {selectedOffer.contact?.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedOffer.contact.email}</span>
-                    </div>
-                  )}
-
-                  {selectedOffer.contact?.website && (
-                    <div className="flex items-center gap-2">
-                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                      <a href={selectedOffer.contact.website} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
-                        {selectedOffer.contact.website}
-                      </a>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Send a Message</h3>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="name" className="text-sm">Your Name</label>
-                    <Input id="name" placeholder="Enter your name" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="email" className="text-sm">Your Email</label>
-                    <Input id="email" type="email" placeholder="Enter your email" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="message" className="text-sm">Your Message</label>
-                    <textarea 
-                      id="message" 
-                      className="min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground"
-                      placeholder="Enter your message..." 
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsContactDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => {
-              setIsContactDialogOpen(false);
-              toast({
-                title: "Message sent",
-                description: "Your message has been sent successfully.",
-              });
-            }}>
-              Send Message
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Location Dialog */}
-      <Dialog open={isLocationDialogOpen} onOpenChange={setIsLocationDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl">
-              <MapPin className="inline-block mr-2 h-5 w-5" />
-              Location: {selectedOffer?.title}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-2">
-            {selectedOffer && selectedOffer.location?.lat && selectedOffer.location?.lng && (
-              <>
-                <div className="w-full h-[250px] rounded-md overflow-hidden mb-2">
-                  <MapComponent 
-                    height="250px" 
-                    zoom={14} 
-                    center={[selectedOffer.location.lng, selectedOffer.location.lat]}
-                    locations={[{
-                      id: selectedOffer.id,
-                      name: selectedOffer.title,
-                      coordinates: {
-                        lat: selectedOffer.location.lat,
-                        lng: selectedOffer.location.lng
-                      },
-                      description: selectedOffer.description,
-                      type: selectedOffer.category
-                    }]}
-                  />
-                </div>
-                
-                <p className="text-sm mb-2">
-                  <span className="font-medium">Address:</span> {selectedOffer.location.address || `${selectedOffer.location.city}, ${selectedOffer.location.country}`}
-                </p>
-                
-                <p className="text-sm mb-4">
-                  <span className="font-medium">Offered by:</span> {selectedOffer.user?.name || 'Anonymous'}
-                </p>
-
-                <div className="flex justify-between pt-2">
-                  <Button variant="outline" onClick={() => setIsLocationDialogOpen(false)}>
-                    Close
-                  </Button>
-                  
-                  <Button onClick={() => {
-                    setIsLocationDialogOpen(false);
-                    handleGoToResourceMap(selectedOffer.id);
-                  }}>
-                    <MapPin className="mr-2 h-4 w-4" />
-                    See on Full Map
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </Layout>
   );
 };
-
-// Helper function to get icon for offer category
-function getCategoryIcon(category: string) {
-  switch(category) {
-    case 'shelter':
-      return <Home className="h-4 w-4" />;
-    case 'food':
-      return <FileText className="h-4 w-4" />;
-    case 'legal':
-      return <FileText className="h-4 w-4" />;
-    case 'education':
-      return <FileText className="h-4 w-4" />;
-    case 'medical':
-      return <Heart className="h-4 w-4" />;
-    case 'translation':
-      return <MessageCircle className="h-4 w-4" />;
-    default:
-      return <FileText className="h-4 w-4" />;
-  }
-}
-
-// Helper function to get background color based on category
-function getCategoryColor(category: string) {
-  switch(category) {
-    case 'shelter':
-      return 'volunteer-100 text-volunteer-700';
-    case 'food':
-      return 'orange-100 text-orange-700';
-    case 'legal':
-      return 'blue-100 text-blue-700';
-    case 'education':
-      return 'indigo-100 text-indigo-700';
-    case 'medical':
-      return 'red-100 text-red-700';
-    case 'translation':
-      return 'green-100 text-green-700';
-    default:
-      return 'muted-100 text-muted-700';
-  }
-}
 
 export default Offers;

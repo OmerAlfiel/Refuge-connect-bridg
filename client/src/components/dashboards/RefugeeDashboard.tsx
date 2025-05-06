@@ -1,17 +1,26 @@
 import React from 'react';
 import { User } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, FileText, MessageCircle, MapPin } from 'lucide-react';
+import { Plus, FileText, MessageCircle, MapPin, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MapComponent from '@/components/MapComponent';
+import { useUserMatches } from '@/hooks/use-matches';
 
 interface RefugeeDashboardProps {
   user: User | null;
 }
 
 const RefugeeDashboard: React.FC<RefugeeDashboardProps> = ({ user }) => {
+  // Use the matches hook to get match data
+  const { data: userMatches = [] } = useUserMatches();
+  
+  // Count matches by status
+  const pendingMatches = userMatches.filter(m => m.status === 'pending').length;
+  const acceptedMatches = userMatches.filter(m => m.status === 'accepted').length;
+  const completedMatches = userMatches.filter(m => m.status === 'completed').length;
+
   const recentNeeds = [
     {
       id: '1',
@@ -81,7 +90,7 @@ const RefugeeDashboard: React.FC<RefugeeDashboardProps> = ({ user }) => {
   return (
     <div className="space-y-8">
       {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Posted Needs</CardTitle>
@@ -108,6 +117,35 @@ const RefugeeDashboard: React.FC<RefugeeDashboardProps> = ({ user }) => {
             <div className="text-3xl font-bold">5</div>
             <p className="text-xs text-muted-foreground mt-1">From 2 conversations</p>
           </CardContent>
+        </Card>
+        {/* New Match Statistics Card */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Match Statistics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-around">
+              <div className="flex flex-col items-center">
+                <span className="text-xl font-bold">{pendingMatches}</span>
+                <span className="text-xs text-muted-foreground">Pending</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-xl font-bold text-green-600">{acceptedMatches}</span>
+                <span className="text-xs text-muted-foreground">Accepted</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-xl font-bold text-blue-600">{completedMatches}</span>
+                <span className="text-xs text-muted-foreground">Completed</span>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="pt-0">
+            <Button variant="outline" size="sm" className="w-full" asChild>
+              <Link to="/matches">
+                <CheckCircle className="h-4 w-4 mr-2" /> View All Matches
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
       </div>
 
@@ -217,6 +255,48 @@ const RefugeeDashboard: React.FC<RefugeeDashboardProps> = ({ user }) => {
             <p className="text-xs text-muted-foreground mt-1">Posted by: Education Support Network • 5 days ago</p>
           </div>
         </CardContent>
+      </Card>
+
+      {/* Match Activity Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Match Activity</CardTitle>
+          <CardDescription>Latest activity on your matches</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {userMatches.length > 0 ? (
+            userMatches.slice(0, 3).map((match) => (
+              <div key={match.id} className="flex items-start gap-3 p-3 rounded-lg border">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center
+                  ${match.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    match.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                    match.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                    match.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'}`}>
+                  <CheckCircle className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">
+                    {match.need?.title || 'Need'} + {match.offer?.title || 'Offer'}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Status: <span className="font-medium capitalize">{match.status}</span>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/matches?id=${match.id}`}>View</Link>
+                </Button>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-muted-foreground py-2">No recent match activity</p>
+          )}
+        </CardContent>
+        <CardFooter>
+          <Button variant="outline" className="w-full" asChild>
+            <Link to="/matches">View All Matches</Link>
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );

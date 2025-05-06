@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DataSource } from 'typeorm';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -10,7 +11,49 @@ async function bootstrap() {
   });
   
   // Enable CORS
-  app.enableCors();
+  app.enableCors({
+    origin: true, // Allow all origins
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
+
+   // Get database connection and check tables
+   try {
+    const dataSource = app.get(DataSource);
+    
+    // Log database tables
+    const tables = await dataSource.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
+    console.log("Database tables:", tables.map(t => t.table_name));
+    
+    // Check if matches table exists and examine its structure
+    const matchesTableExists = await dataSource.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'matches'
+      )
+    `);
+    
+    if (matchesTableExists[0].exists) {
+      console.log("Matches table exists, examining structure...");
+      const columns = await dataSource.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'matches'
+      `);
+      console.log("Matches table columns:", columns);
+    } else {
+      console.log("Matches table doesn't exist, synchronizing schema...");
+      await dataSource.synchronize(true);
+      console.log("Schema synchronization complete");
+    }
+  } catch (error) {
+    console.error("Database check error:", error);
+  }
+  
   
   // Enable validation
   app.useGlobalPipes(

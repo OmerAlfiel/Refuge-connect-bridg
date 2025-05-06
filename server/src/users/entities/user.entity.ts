@@ -3,6 +3,7 @@ import { UserRole } from '../interfaces/user-role.enum';
 import { Injectable, Logger } from '@nestjs/common';
 import { Need } from 'src/needs/entities/need.entity';
 import { Offer } from 'src/offers/entities/offer.entity';
+import { Match } from 'src/matches/entities/match.entity';
 
 @Entity('users')
 export class User {
@@ -61,6 +62,12 @@ export class User {
 
   @OneToMany(() => Offer, offer => offer.user)
   offers: Offer[];
+
+  @OneToMany(() => Match, match => match.initiator)
+  initiatedMatches: Match[];
+
+  @OneToMany(() => Match, match => match.responder)
+  respondedMatches: Match[];
 }
 
 // Add an entity subscriber to debug entity creation
