@@ -81,15 +81,5 @@ async function bootstrap() {
   const port = configService.get('port');
   
   await app.listen(port);
-  console.log(`Application running on port ${port}`);
-  console.log(`Swagger documentation available at http://localhost:${port}/api`);
-  
-  // Log database configuration
-  const dbConfig = configService.get('database');
-  console.log('Database configuration:');
-  console.log(`  Host: ${dbConfig.host}`);
-  console.log(`  Port: ${dbConfig.port}`);
-  console.log(`  Database: ${dbConfig.database}`);
-  console.log(`  Synchronize: ${dbConfig.synchronize}`);
 }
 bootstrap();

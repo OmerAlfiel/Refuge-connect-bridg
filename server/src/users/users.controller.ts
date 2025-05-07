@@ -52,10 +52,12 @@ export class UsersController {
     status: 403, 
     description: 'Forbidden - Not an admin' 
   })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get all users' })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, description: 'List of all users' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   findAll() {
     return this.usersService.findAll();
   }
@@ -144,4 +146,5 @@ export class UsersController {
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
+  
 }

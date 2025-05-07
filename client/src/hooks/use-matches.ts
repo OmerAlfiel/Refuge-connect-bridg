@@ -3,7 +3,7 @@ import { MatchesApi } from '../api/matchesApi';
 import { useAuth } from '../context/AuthContext';
 import { CreateMatchRequest, MatchStatus, UpdateMatchRequest, MatchesQueryParams } from '../types';
 import { useToast } from './use-toast';
-import { apiBaseUrl } from '@/api/api';
+import { apiBaseUrl } from '@/lib/api';
 
 export function useMatches(needId?: string, offerId?: string, status?: MatchStatus) {
   const { token } = useAuth();

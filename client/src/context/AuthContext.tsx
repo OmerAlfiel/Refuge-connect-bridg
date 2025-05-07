@@ -1,75 +1,91 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '@/types';
-
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
-  isAuthenticated: boolean;
-  role: UserRole | null;
-  login: (userData: {user: User, access_token: string}) => void;
-  logout: () => void;
-  loading: boolean;
   token: string | null;
+  isAuthenticated: boolean; // Make sure this is exposed
+  loading: boolean; // Add loading state
+  login: (data: { user: User; access_token: string }) => void;
+  logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  loading: true,
+  login: () => {},
+  logout: () => {},
+});
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
+  // Effect to fetch user profile on token changes or component mount
   useEffect(() => {
-    // Check for saved user in local storage
-    const savedUser = localStorage.getItem("refugelink-user");
-    const savedToken = localStorage.getItem("refugelink-token");
-    
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-        if (savedToken) {
-          setToken(savedToken);
-        }
-      } catch (error) {
-        console.error("Failed to parse saved user:", error);
-        localStorage.removeItem("refugelink-user");
-        localStorage.removeItem("refugelink-token");
+    const fetchCurrentUser = async () => {
+      setLoading(true);
+      
+      if (!token) {
+        setUser(null);
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
       }
-    }
-    setLoading(false);
-  }, []);
 
-  const login = (userData: {user: User, access_token: string}) => {
-    setUser(userData.user);
-    setToken(userData.access_token);
-    localStorage.setItem("refugelink-user", JSON.stringify(userData.user));
-    localStorage.setItem("refugelink-token", userData.access_token);
+      try {
+        const response = await fetch('http://localhost:3000/auth/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch user profile');
+        }
+        
+        const userData = await response.json();
+        setUser(userData);
+        setIsAuthenticated(true);
+        console.log("User profile loaded:", userData.id);
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        // If profile fetch fails, token is probably invalid
+        localStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCurrentUser();
+  }, [token]);
+
+  const login = (data: { user: User; access_token: string }) => {
+    localStorage.setItem('token', data.access_token);
+    setToken(data.access_token);
+    setUser(data.user);
+    setIsAuthenticated(true); // Explicitly set this
   };
 
   const logout = () => {
-    setUser(null);
+    localStorage.removeItem('token');
     setToken(null);
-    localStorage.removeItem("refugelink-user");
-    localStorage.removeItem("refugelink-token");
+    setUser(null);
+    setIsAuthenticated(false);
   };
 
-  const value = {
-    user,
-    isAuthenticated: !!user && !!token,
-    role: user?.role || null,
-    login,
-    logout,
-    loading,
-    token,
-  };
+  return (
+    <AuthContext.Provider value={{ user, token, isAuthenticated, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-}
+export const useAuth = () => useContext(AuthContext);

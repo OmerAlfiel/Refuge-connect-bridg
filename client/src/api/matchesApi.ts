@@ -1,5 +1,5 @@
 import { Match, CreateMatchRequest, MatchStatus, MatchesQueryParams, UpdateMatchRequest } from '../types';
-import { apiBaseUrl } from './api';
+import { apiBaseUrl } from '../lib/api';
 
 export const MatchesApi = {
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   Card, 
@@ -16,7 +16,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTranslation } from "react-i18next";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -24,6 +24,14 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Add effect to redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log("User is authenticated, redirecting to dashboard...");
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +57,9 @@ export default function Login() {
           title: t("login.success"),
           description: t("login.welcomeBack", { name: data.user.name }),
         });
-        navigate('/dashboard');
+        
+        // Remove the explicit navigation here - let the useEffect handle it
+        // This ensures the auth context is fully updated before navigation
       } else {
         toast({
           title: t("login.failed"),
@@ -83,7 +93,7 @@ export default function Login() {
         description: t("demo.welcomeAs", { role: t(`roles.${role}`) }),
       });
       
-      navigate('/dashboard');
+      // Remove this direct navigation too - let the useEffect handle it
     } else {
       toast({
         title: t("demo.failed"),
@@ -91,7 +101,7 @@ export default function Login() {
         variant: "destructive",
       });
     }
-  };
+}
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/40">

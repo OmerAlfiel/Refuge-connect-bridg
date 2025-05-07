@@ -14,7 +14,7 @@ import { User } from '../users/entities/user.entity';
         
         const config = {
           ...configService.get('database'),
-          entities: [User], // Explicitly add User entity
+          entities: [User, __dirname + '/**/*.entity{.ts,.js}'], // Explicitly add User entity
           synchronize: true,
           logging: true,
           logger: 'advanced-console',

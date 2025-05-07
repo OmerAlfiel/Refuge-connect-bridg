@@ -1,3 +1,4 @@
+
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, EntitySubscriberInterface, InsertEvent, OneToMany } from 'typeorm';
 import { UserRole } from '../interfaces/user-role.enum';
 import { Injectable, Logger } from '@nestjs/common';
@@ -56,7 +57,6 @@ export class User {
   updatedAt: Date;
 
   // Relationships
-
   @OneToMany(() => Need, need => need.user)
   needs: Need[];
 
@@ -70,7 +70,8 @@ export class User {
   respondedMatches: Match[];
 }
 
-// Add an entity subscriber to debug entity creation
+
+
 @Injectable()
 export class UserSubscriber implements EntitySubscriberInterface<User> {
   private readonly logger = new Logger(UserSubscriber.name);

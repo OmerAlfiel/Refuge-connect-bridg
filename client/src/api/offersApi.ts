@@ -1,6 +1,6 @@
 
 import { CreateOfferRequest, Offer, OfferCategory, OffersQueryParams, OfferStatus, UpdateOfferRequest } from '../types';
-import { apiBaseUrl } from './api';
+import { apiBaseUrl } from '../lib/api';
 
 
 

@@ -273,3 +273,35 @@ export interface Announcement {
   createdAt: Date;
   expiresAt?: Date;
 }
+
+
+
+export interface Message {
+  id: string;
+  content: string;
+  sender: User;
+  senderId: string;
+  conversationId: string;
+  read: boolean;
+  timestamp: Date;
+}
+
+export interface Conversation {
+  id: string;
+  participants: User[];
+  lastMessage?: string;
+  lastMessageAt?: Date;
+  messages?: Message[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateConversationRequest {
+  participantIds: string[];
+  initialMessage?: string;
+}
+
+export interface CreateMessageRequest {
+  content: string;
+  conversationId: string;
+}

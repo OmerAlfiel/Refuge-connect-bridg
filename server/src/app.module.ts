@@ -16,6 +16,8 @@ import { MatchesModule } from './matches/matches.module';
 import { Match } from './matches/entities/match.entity';
 import configuration from './config/configuration';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MessagesModule } from './messages/messages.module';
+import { Message } from './messages/entities/message.entity';
 
 @Module({
   imports: [
@@ -31,12 +33,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     LocalConfigModule,
     DatabaseModule,
     // Add TypeOrmModule.forFeature here to ensure User entity is registered
-    TypeOrmModule.forFeature([User, Need, Offer, Match]),
+    TypeOrmModule.forFeature([User, Need, Offer, Match, Message]),
     AuthModule,
     UsersModule,
     NeedsModule,
     OffersModule,
     MatchesModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

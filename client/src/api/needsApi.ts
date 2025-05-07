@@ -1,5 +1,5 @@
 import { CreateNeedRequest, Need, NeedCategory, NeedsQueryParams, NeedStatus, UpdateNeedRequest } from '../types';
-import { apiBaseUrl } from './api';
+import { apiBaseUrl } from '../lib/api';
 
 
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { apiBaseUrl } from "@/api/api";
+import { apiBaseUrl } from "@/lib/api";
 import { useNeeds } from "@/hooks/use-needs";
 import { useOffers } from "@/hooks/use-offers";
 

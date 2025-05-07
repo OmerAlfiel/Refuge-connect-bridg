@@ -23,6 +23,7 @@ import Notifications from "./pages/Notifications";
 import { StrictMode } from "react";
 import ScrollToTop from "./components/ScrollToTop";
 import Matches from "./pages/Matches";
+import { WebSocketProvider } from "./context/WebSocketContext";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+          <WebSocketProvider>
           <BrowserRouter>
           <ScrollToTop />
             <Routes>
@@ -56,6 +58,7 @@ const App = () => (
           {/* Place toast components inside the component tree */}
           <Toaster />
           <Sonner />
+          </WebSocketProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
