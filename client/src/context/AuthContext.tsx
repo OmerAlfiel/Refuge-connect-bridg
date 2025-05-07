@@ -49,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         const userData = await response.json();
+        console.log("User data loaded:", userData);
         setUser(userData);
         setIsAuthenticated(true);
         console.log("User profile loaded:", userData.id);
@@ -68,10 +69,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const login = (data: { user: User; access_token: string }) => {
+    console.log("Login data received:", data);
+    
+    // Ensure user has a name property
+    if (data.user && !data.user.name) {
+      if (data.user.organizationName) {
+        data.user.name = data.user.organizationName;
+      } else if (data.user.email) {
+        data.user.name = data.user.email.split('@')[0];
+      } else {
+        data.user.name = 'User';
+      }
+    }
+    
     localStorage.setItem('token', data.access_token);
     setToken(data.access_token);
     setUser(data.user);
-    setIsAuthenticated(true); // Explicitly set this
+    setIsAuthenticated(true);
   };
 
   const logout = () => {

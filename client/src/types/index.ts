@@ -10,7 +10,8 @@ export interface User {
   contact?: string;
   verified: boolean;
   avatar?: string;
-  email: string; // Add email property to fix TypeScript error
+  email: string;
+  organizationName?: string;
 }
 
 export interface Location {

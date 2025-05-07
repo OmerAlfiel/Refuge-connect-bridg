@@ -59,10 +59,10 @@ export class AuthController {
     status: 401, 
     description: 'Unauthorized - Invalid or missing token' 
   })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @Get('profile')
+  @UseGuards(JwtAuthGuard)
   getProfile(@Request() req) {
-    return req.user;
+    // Make sure we're returning the complete user object including name
+    return this.authService.getProfile(req.user.id);
   }
 }

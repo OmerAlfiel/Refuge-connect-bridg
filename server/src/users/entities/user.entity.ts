@@ -13,6 +13,9 @@ export class User {
 
   @Column()
   name: string;
+  
+  @Column({ nullable: true })
+organizationName: string;
 
   @Column({ unique: true })
   email: string;

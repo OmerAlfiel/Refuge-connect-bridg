@@ -61,6 +61,7 @@ export class UsersController {
   findAll() {
     return this.usersService.findAll();
   }
+  
 
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiParam({ 
