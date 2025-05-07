@@ -203,15 +203,23 @@ export class MessagesService {
   }
 
   async getUnreadCount(userId: string): Promise<number> {
-    const result = await this.messageRepository
-      .createQueryBuilder('message')
-      .innerJoin('message.conversation', 'conversation')
-      .innerJoin('conversation.participants', 'participant')
-      .where('participant.id = :userId', { userId })
-      .andWhere('message.senderId != :userId', { userId })
-      .andWhere('message.read = :read', { read: false })
-      .getCount();
-    
-    return result;
+    try {
+      const result = await this.messageRepository
+        .createQueryBuilder('message')
+        .innerJoin('message.conversation', 'conversation')
+        .innerJoin('conversation.participants', 'participant')
+        .where('participant.id = :userId', { userId })
+        .andWhere('message.senderId != :userId', { userId })
+        .andWhere('message.read = :read', { read: false })
+        .getCount();
+      
+      return result;
+    } catch (error) {
+      console.error('Error getting unread count:', error);
+      // Return 0 instead of throwing an error to avoid breaking the UI
+      return 0;
+    }
   }
+
+  
 }

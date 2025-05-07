@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, Navigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -10,14 +10,21 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/AuthContext';
-import { Menu, X, LogOut, User, MessageCircle, Bell, Heart, MapPin } from 'lucide-react';
+import { Menu, X, LogOut, User, MessageCircle, Bell } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useUnreadCount } from '@/hooks/use-message';
 
 const Header: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   
+  // Use the hook to get real unread message count
+  const { data: unreadCount = 0, isLoading: isLoadingUnread } = useUnreadCount();
+  
+  // Keep the mock data for notifications until we implement that feature
+  const unreadNotifications = 3;
+
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
@@ -25,10 +32,6 @@ const Header: React.FC = () => {
   const isActive = (path: string) => {
     return location.pathname === path;
   };
-
-  // Mock data for notification counts
-  const unreadMessages = 2;
-  const unreadNotifications = 3;
 
   return (
     <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-sm border-b">
@@ -90,8 +93,8 @@ const Header: React.FC = () => {
               <Link to="/messages">
                 <Button variant="ghost" size="icon" className="relative">
                   <MessageCircle className="h-5 w-5" />
-                  {unreadMessages > 0 && (
-                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">{unreadMessages}</span>
+                  {!isLoadingUnread && unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">{unreadCount}</span>
                   )}
                 </Button>
               </Link>
@@ -131,8 +134,8 @@ const Header: React.FC = () => {
                     <Link to="/messages" className="cursor-pointer">
                       <MessageCircle className="mr-2 h-4 w-4" />
                       <span>Messages</span>
-                      {unreadMessages > 0 && (
-                        <Badge variant="outline" className="ml-auto h-4 min-w-4 flex items-center justify-center text-[10px]">{unreadMessages}</Badge>
+                      {!isLoadingUnread && unreadCount > 0 && (
+                        <Badge variant="outline" className="ml-auto h-4 min-w-4 flex items-center justify-center text-[10px]">{unreadCount}</Badge>
                       )}
                     </Link>
                   </DropdownMenuItem>
@@ -233,8 +236,8 @@ const Header: React.FC = () => {
                 </Link>
                 <Link to="/messages" className="text-sm font-medium hover:text-primary flex items-center justify-between" onClick={toggleMobileMenu}>
                   <span>Messages</span>
-                  {unreadMessages > 0 && (
-                    <Badge variant="outline" className="text-xs">{unreadMessages}</Badge>
+                  {!isLoadingUnread && unreadCount > 0 && (
+                    <Badge variant="outline" className="text-xs">{unreadCount}</Badge>
                   )}
                 </Link>
                 <Link to="/notifications" className="text-sm font-medium hover:text-primary flex items-center justify-between" onClick={toggleMobileMenu}>

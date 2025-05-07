@@ -116,12 +116,12 @@ export function useCreateConversation() {
 
 // Get unread message count
 export function useUnreadCount() {
-  const { socket } = useWebSocket();
+  const { socket, isConnected } = useWebSocket();
   const queryClient = useQueryClient();
 
   // Listen for new messages to update unread count
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !isConnected) return;
 
     const handleNewMessage = () => {
       queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
@@ -138,11 +138,11 @@ export function useUnreadCount() {
       socket.off('newMessage', handleNewMessage);
       socket.off('messagesRead', handleMessagesRead);
     };
-  }, [socket, queryClient]);
+  }, [socket, isConnected, queryClient]);
 
   return useQuery({
     queryKey: ['unreadCount'],
     queryFn: messageService.getUnreadCount,
-    refetchInterval: 300000, // Refetch every 5 minutes as fallback
+    refetchInterval: 60000, // Refresh every minute as fallback
   });
 }
