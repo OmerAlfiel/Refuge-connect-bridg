@@ -28,6 +28,9 @@ export class Message {
   @UpdateDateColumn()
   updatedAt: Date;
 
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  timestamp: Date;
+
   @Column('uuid')
   conversationId: string;
 }

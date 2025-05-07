@@ -47,10 +47,10 @@ const Messages: React.FC = () => {
   }, [messages]);
   
   // Find selected conversation
-  const currentConversation = conversations.find(c => c.id === activeConversationId);
+  const currentConversation = (conversations as Conversation[]).find(c => c.id === activeConversationId);
   
   // Filter conversations by search query
-  const filteredConversations = conversations.filter(conversation => {
+  const filteredConversations = (conversations as Conversation[]).filter(conversation => {
     if (!searchQuery) return true;
     
     // Try to find matching participant name
@@ -116,18 +116,36 @@ const Messages: React.FC = () => {
   };
   
   // Format timestamp for display
-  const formatMessageTime = (timestamp: string | Date) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
+  const formatMessageTime = (timestamp: string | Date | null | undefined) => {
+    if (!timestamp) {
+      console.log('Missing timestamp:', timestamp);
+      return 'Unknown time';
+    }
     
-    if (date.toDateString() === now.toDateString()) {
-      return format(date, 'h:mm a'); // Today: 2:30 PM
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday ' + format(date, 'h:mm a'); // Yesterday 2:30 PM
-    } else {
-      return format(date, 'MMM d, h:mm a'); // Mar 15, 2:30 PM
+    try {
+      console.log('Attempting to format timestamp:', timestamp);
+      const date = new Date(timestamp);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.log('Invalid date format:', timestamp);
+        return 'Unknown time';
+      }
+      
+      const now = new Date();
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      if (date.toDateString() === now.toDateString()) {
+        return format(date, 'h:mm a'); // Today: 2:30 PM
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday ' + format(date, 'h:mm a'); // Yesterday 2:30 PM
+      } else {
+        return format(date, 'MMM d, h:mm a'); // Mar 15, 2:30 PM
+      }
+    } catch (error) {
+      console.error('Error formatting timestamp:', error, timestamp);
+      return 'Unknown time';
     }
   };
 
@@ -218,25 +236,23 @@ const Messages: React.FC = () => {
                           )}
                         </div>
                         
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start">
-                            <h3 className={cn(
-                              "font-medium truncate", 
-                              hasUnread && "font-semibold"
-                            )}>
-                              {otherParticipants.map(p => p.name).join(', ')}
-                            </h3>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                              {conversation.lastMessageAt && 
-                                formatMessageTime(conversation.lastMessageAt)}
-                            </span>
-                          </div>
-                          <p className={cn(
-                            "text-sm truncate text-muted-foreground",
-                            hasUnread && "text-foreground font-medium"
-                          )}>
-                            {conversation.lastMessage || 'No messages yet'}
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start">
+                              <h3 className={cn(
+                                "font-medium truncate", 
+                                hasUnread && "font-semibold"
+                              )}>
+                                {otherParticipants.map(p => p.name).join(', ')}
+                              </h3>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
+                                {conversation.lastMessageAt ? 
+                                  formatMessageTime(conversation.lastMessageAt) : 
+                                  'New'}
+                              </span>
+                            </div>
+                            <p className="text-sm truncate">
+                              {conversation.lastMessage || 'No messages yet'}
+                            </p>
                         </div>
                       </div>
                     );

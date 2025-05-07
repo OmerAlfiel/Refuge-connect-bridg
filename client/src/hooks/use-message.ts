@@ -34,7 +34,9 @@ export function useConversations() {
   return useQuery({
     queryKey: ['conversations'],
     queryFn: messageService.getConversations,
-    onError: (err) => console.error("Error fetching conversations:", err)
+    meta: {
+      onError: (err) => console.error("Error fetching conversations:", err)
+    }
   });
 }
 

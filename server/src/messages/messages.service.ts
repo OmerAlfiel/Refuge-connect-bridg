@@ -131,6 +131,7 @@ export class MessagesService {
       sender,
       senderId: userId,
       conversationId: createMessageDto.conversationId,
+      timestamp: new Date(),
       read: false
     });
   
