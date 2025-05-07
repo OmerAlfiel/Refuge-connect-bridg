@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
@@ -22,6 +22,11 @@ export class MessagesService {
     userId: string,
     createConversationDto: CreateConversationDto,
   ): Promise<Conversation> {
+
+
+    if (createConversationDto.participantIds.includes(userId)) {
+      throw new BadRequestException('Cannot create a conversation with yourself');
+    }
     // Check if participants exist
     const allParticipantIds = [userId, ...createConversationDto.participantIds];
     const participants = await this.userRepository.findByIds(allParticipantIds);
@@ -49,7 +54,8 @@ export class MessagesService {
 
     // Create new conversation
     const conversation = this.conversationRepository.create({
-      participants,
+      participants: allParticipantIds.map(id => ({ id })),
+      messages: [],
     });
 
     const savedConversation = await this.conversationRepository.save(conversation);

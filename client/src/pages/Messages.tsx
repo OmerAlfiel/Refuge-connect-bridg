@@ -88,29 +88,40 @@ const Messages: React.FC = () => {
   
   // Handle creating a new conversation
   const handleCreateConversation = async () => {
-    if (!selectedUserId || !initialMessage.trim()) return;
-    
-    try {
-      const conversation = await createConversationMutation.mutateAsync({
-        participantIds: [selectedUserId],
-        initialMessage: initialMessage.trim(),
-      });
-      
-      setIsNewMessageDialogOpen(false);
-      setSelectedUserId('');
-      setInitialMessage('');
-      setActiveConversationId(conversation.id);
-      
-      toast({
-        title: "Message sent",
-        description: "Your new conversation has been started.",
-      });
-    } catch (error) {
-      console.error('Failed to create conversation:', error);
+    if (!selectedUserId) {
       toast({
         title: "Error",
-        description: "Failed to start conversation. Please try again.",
-        variant: "destructive",
+        description: "Please select a user to message",
+        variant: "destructive"
+      });
+      return;
+    }
+  
+    if (selectedUserId === user?.id) {
+      toast({
+        title: "Error",
+        description: "You cannot send messages to yourself",
+        variant: "destructive"
+      });
+      return;
+    }
+  
+    // Rest of your existing conversation creation code
+    try {
+      await createConversationMutation.mutateAsync({
+        participantIds: [selectedUserId],
+        initialMessage
+      });
+      // Reset fields and close dialog
+      setSelectedUserId('');
+      setInitialMessage('');
+      setIsNewMessageDialogOpen(false);
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create conversation",
+        variant: "destructive"
       });
     }
   };
