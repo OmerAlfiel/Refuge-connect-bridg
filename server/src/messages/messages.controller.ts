@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Patch, HttpException, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { MessagesService } from './messages.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -54,11 +54,21 @@ export class MessagesController {
   }
 
   @Patch('conversations/:id/read')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Mark all messages in conversation as read' })
   @ApiParam({ name: 'id', description: 'Conversation ID' })
   async markAsRead(@Request() req, @Param('id') id: string) {
-    await this.messagesService.markAsRead(id, req.user.id);
-    return { success: true };
+    try {
+      console.log(`Marking conversation ${id} as read for user ${req.user.id}`);
+      await this.messagesService.markAsRead(id, req.user.id);
+      return { success: true };
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+      throw new HttpException(
+        error.message || 'Failed to mark messages as read',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   @Get('unread-count')

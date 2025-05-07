@@ -22,44 +22,33 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isConnected, setIsConnected] = useState(false);
   const { user, token } = useAuth();
   
-  // Initialize socket connection when authenticated
   useEffect(() => {
     if (!token || !user?.id) {
       console.log("WebSocket not connecting - user not authenticated");
       return;
     }
 
-    console.log(`Attempting to establish WebSocket connection for user ${user.id}...`);
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    
-    const newSocket = io(apiUrl, {
+    const newSocket = io('http://localhost:3000', {
       auth: { token },
       transports: ['websocket'],
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 10,
     });
 
+    // Socket event handlers
     newSocket.on('connect', () => {
-      console.log(`WebSocket connected with ID: ${newSocket.id}`);
+      console.log('WebSocket connected');
       setIsConnected(true);
     });
 
-    newSocket.on('disconnect', (reason) => {
-      console.log(`WebSocket disconnected: ${reason}`);
-      setIsConnected(false);
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error(`WebSocket connection error: ${error.message}`);
+    newSocket.on('disconnect', () => {
+      console.log('WebSocket disconnected');
       setIsConnected(false);
     });
 
     setSocket(newSocket);
 
     return () => {
-      console.log('Cleaning up WebSocket connection');
-      newSocket.disconnect();
+      newSocket.close();
     };
   }, [token, user?.id]);
   

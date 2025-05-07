@@ -92,7 +92,7 @@ const Messages: React.FC = () => {
   const hasUnreadMessages = (conversation: Conversation): boolean => {
     return conversation.messages?.some(m => !m.read && m.senderId !== user?.id) || false;
   };
-  
+
   // Handle creating a new conversation
   const handleCreateConversation = async () => {
     if (!selectedUserId) {
@@ -167,22 +167,33 @@ const Messages: React.FC = () => {
     }
   };
 
-  const handleSelectConversation = (conversationId: string) => {
+  const handleSelectConversation = async (conversationId: string) => {
+    console.log("Selected conversation:", conversationId);
     setActiveConversationId(conversationId);
     
     // Mark messages as read when selecting a conversation
-    if (conversationId) {
-      // Call the message service to mark as read
-      messageService.markConversationAsRead(conversationId)
-        .then(() => {
-          // Update conversation list to reflect read status
-          queryClient.invalidateQueries({ queryKey: ['conversations'] });
-          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-          queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
-        })
-        .catch(error => {
-          console.error('Failed to mark conversation as read:', error);
-        });
+    if (conversationId && user?.id) {
+      try {
+        console.log("Calling markConversationAsRead for:", conversationId);
+        await messageService.markConversationAsRead(conversationId);
+        
+        // Update conversation list to reflect read status
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+        queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+        
+      } catch (error: unknown) {
+        console.error('Failed to mark conversation as read:', error);
+        
+        // Only show the toast for non-auth errors (auth errors are handled by the auth context)
+        if (error instanceof Error && !error.message.includes('Not authenticated')) {
+          toast({
+            title: "Error",
+            description: "Failed to mark messages as read",
+            variant: "destructive"
+          });
+        }
+      }
     }
   };
 
@@ -248,7 +259,11 @@ const Messages: React.FC = () => {
                           activeConversationId === conversation.id ? "bg-muted/60" : "",
                           hasUnread ? "bg-muted/20" : ""
                         )}
-                        onClick={() => handleSelectConversation(conversation.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSelectConversation(conversation.id);
+                        }}
                       >
                         <div className="relative">
                           {otherParticipants.length === 1 ? (
@@ -333,7 +348,11 @@ const Messages: React.FC = () => {
                             "p-4 border-b cursor-pointer hover:bg-muted/50 flex items-center gap-3",
                             activeConversationId === conversation.id ? "bg-muted/60" : "",
                           )}
-                          onClick={() => handleSelectConversation(conversation.id)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSelectConversation(conversation.id);
+                          }}
                         >
                           <div className="relative">
                             {otherParticipants.length === 1 ? (
@@ -353,7 +372,9 @@ const Messages: React.FC = () => {
                                 <UserPlus className="h-5 w-5 text-muted-foreground" />
                               </div>
                             )}
-                            <span className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full"></span>
+                            {hasUnreadMessages(conversation) && (
+                              <span className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full"></span>
+                            )}
                           </div>
                           
                           <div className="flex-1 min-w-0">

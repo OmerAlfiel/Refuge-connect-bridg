@@ -168,18 +168,38 @@ export class MessagesService {
   }
 
   async markAsRead(conversationId: string, userId: string): Promise<void> {
-    // First check if user is a participant
-    await this.getConversationById(conversationId, userId);
-    
-    // Then mark all messages not sent by this user as read
-    await this.messageRepository
-      .createQueryBuilder()
-      .update(Message)
-      .set({ read: true })
-      .where('conversationId = :conversationId', { conversationId })
-      .andWhere('senderId != :userId', { userId })
-      .andWhere('read = :read', { read: false })
-      .execute();
+    try {
+      // Verify the user is a participant in the conversation
+      const conversation = await this.conversationRepository
+        .createQueryBuilder('conversation')
+        .innerJoinAndSelect('conversation.participants', 'participant')
+        .where('conversation.id = :conversationId', { conversationId })
+        .getOne();
+  
+      if (!conversation) {
+        throw new NotFoundException('Conversation not found');
+      }
+  
+      const isParticipant = conversation.participants.some(p => p.id === userId);
+      if (!isParticipant) {
+        throw new ForbiddenException('User is not a participant in this conversation');
+      }
+  
+      // Mark messages as read
+      await this.messageRepository
+        .createQueryBuilder()
+        .update()
+        .set({ read: true })
+        .where('conversationId = :conversationId', { conversationId })
+        .andWhere('senderId != :userId', { userId })
+        .andWhere('read = :read', { read: false })
+        .execute();
+        
+      console.log(`Marked messages as read in conversation ${conversationId} for user ${userId}`);
+    } catch (error) {
+      console.error('Error in markAsRead:', error);
+      throw error;
+    }
   }
 
   async getUnreadCount(userId: string): Promise<number> {

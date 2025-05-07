@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { messageService } from '@/services/messageService';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useWebSocket } from '@/context/WebSocketContext';
+import { useAuth } from '@/context/AuthContext';
 
 // Get all conversations
 export function useConversations() {
@@ -43,21 +44,19 @@ export function useConversations() {
 
 export function useConversationMessages(conversationId?: string) {
   const queryClient = useQueryClient();
-
-  // Fetch messages
-  const result = useQuery({
-    queryKey: ['messages', conversationId],
-    queryFn: () => messageService.getMessages(conversationId!),
-    enabled: !!conversationId,
-  });
+  const prevConversationIdRef = useRef<string | undefined>(undefined);
+  const { token } = useAuth();
 
   // Mark messages as read when conversation is opened
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !token || conversationId === prevConversationIdRef.current) return;
     
-    // This will mark messages as read when the conversation is viewed
+    prevConversationIdRef.current = conversationId;
+    
+    console.log("Marking conversation as read:", conversationId);
     messageService.markConversationAsRead(conversationId)
       .then(() => {
+        console.log("Successfully marked conversation as read");
         // Update all related queries to reflect read status
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
         queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
@@ -65,11 +64,14 @@ export function useConversationMessages(conversationId?: string) {
       .catch(error => {
         console.error('Failed to mark conversation as read:', error);
       });
-  }, [conversationId, queryClient]);
-
-  return result;
+  }, [conversationId, queryClient, token]); // Add token to dependencies
+  // Fetch messages
+  return useQuery({
+    queryKey: ['messages', conversationId],
+    queryFn: () => messageService.getMessages(conversationId!),
+    enabled: !!conversationId,
+  });
 }
-
 // Send a message
 export function useSendMessage() {
   const queryClient = useQueryClient();
