@@ -31,7 +31,23 @@ export const messageService = {
   },
 
   markConversationAsRead: async (conversationId: string): Promise<void> => {
-    await api.patch(`/messages/conversations/${conversationId}/read`);
+    const token = localStorage.getItem('auth_token'); // Or however you store your auth token
+    
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+    
+    const response = await fetch(`http://localhost:3000/messages/conversations/${conversationId}/read`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to mark conversation as read: ${response.statusText}`);
+    }
   },
 
   getUnreadCount: async (): Promise<number> => {

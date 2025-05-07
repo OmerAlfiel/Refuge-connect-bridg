@@ -287,14 +287,16 @@ export interface Message {
   timestamp: Date;
 }
 
+
 export interface Conversation {
   id: string;
   participants: User[];
-  lastMessage?: string;
-  lastMessageAt?: Date;
   messages?: Message[];
-  createdAt: Date;
-  updatedAt: Date;
+  lastMessage?: string | null;
+  lastMessageAt?: Date | string | null;
+  hasUnread?: boolean;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface CreateConversationRequest {

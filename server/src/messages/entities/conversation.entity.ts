@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany, CreateDateColumn, UpdateDateColumn, JoinTable } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany, CreateDateColumn, UpdateDateColumn, JoinTable, AfterLoad } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Message } from './message.entity';
 
@@ -15,7 +15,7 @@ export class Conversation {
   })
   participants: User[];
 
-  @OneToMany(() => Message, message => message.conversationId, { cascade: true })
+  @OneToMany(() => Message, message => message.conversation, { cascade: true })
   messages: Message[];
 
   @Column({ nullable: true })
@@ -29,4 +29,13 @@ export class Conversation {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  // Virtual property for tracking unread messages
+  hasUnread?: boolean;
+
+  @AfterLoad()
+  computeUnreadStatus() {
+    // This will be populated by the service
+    this.hasUnread = this.messages?.some(message => !message.read) || false;
+  }
 }

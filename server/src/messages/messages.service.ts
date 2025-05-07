@@ -75,15 +75,27 @@ export class MessagesService {
   }
 
   async getConversations(userId: string): Promise<Conversation[]> {
-    // Remove profile relation which doesn't exist
-    return this.conversationRepository
+    // Get conversations for this user
+    const conversations = await this.conversationRepository
       .createQueryBuilder('conversation')
-      .innerJoin('conversation.participants', 'participant')
+      .innerJoin('conversation.participants', 'participant', 'participant.id = :userId', { userId })
       .leftJoinAndSelect('conversation.participants', 'allParticipants')
-      .where('participant.id = :userId', { userId })
+      .leftJoinAndSelect('conversation.messages', 'messages')
+      .leftJoinAndSelect('messages.sender', 'sender')
       .orderBy('conversation.lastMessageAt', 'DESC', 'NULLS LAST')
       .getMany();
+  
+    // For each conversation, determine if there are unread messages specific to this user
+    for (const conversation of conversations) {
+      conversation.hasUnread = conversation.messages?.some(
+        message => !message.read && message.senderId !== userId
+      ) || false;
+    }
+  
+    return conversations;
   }
+
+  
 
   async getConversationById(
     conversationId: string,
@@ -156,12 +168,17 @@ export class MessagesService {
   }
 
   async markAsRead(conversationId: string, userId: string): Promise<void> {
+    // First check if user is a participant
+    await this.getConversationById(conversationId, userId);
+    
+    // Then mark all messages not sent by this user as read
     await this.messageRepository
       .createQueryBuilder()
       .update(Message)
       .set({ read: true })
       .where('conversationId = :conversationId', { conversationId })
       .andWhere('senderId != :userId', { userId })
+      .andWhere('read = :read', { read: false })
       .execute();
   }
 

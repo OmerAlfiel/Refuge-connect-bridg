@@ -40,10 +40,9 @@ export function useConversations() {
   });
 }
 
-// Get messages for a specific conversation
+
 export function useConversationMessages(conversationId?: string) {
   const queryClient = useQueryClient();
-  const { socket, markConversationAsRead } = useWebSocket();
 
   // Fetch messages
   const result = useQuery({
@@ -54,43 +53,19 @@ export function useConversationMessages(conversationId?: string) {
 
   // Mark messages as read when conversation is opened
   useEffect(() => {
-    if (!conversationId || result.isLoading) return;
-
-    const markAsRead = async () => {
-      try {
-        await messageService.markConversationAsRead(conversationId);
-        markConversationAsRead(conversationId);
-        
-        // Update unread count
-        queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
-      } catch (error) {
-        console.error('Failed to mark conversation as read:', error);
-      }
-    };
-
-    markAsRead();
-  }, [conversationId, result.isLoading, markConversationAsRead, queryClient]);
-
-  // Listen for new messages in this conversation
-  useEffect(() => {
-    if (!socket || !conversationId) return;
-
-    const handleNewMessage = (data: { message: { conversationId: string } }) => {
-      if (data.message.conversationId === conversationId) {
-        // Update messages in this conversation
-        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-        
-        // Mark the message as read since we're viewing the conversation
-        markConversationAsRead(conversationId);
-      }
-    };
-
-    socket.on('newMessage', handleNewMessage);
+    if (!conversationId) return;
     
-    return () => {
-      socket.off('newMessage', handleNewMessage);
-    };
-  }, [socket, conversationId, queryClient, markConversationAsRead]);
+    // This will mark messages as read when the conversation is viewed
+    messageService.markConversationAsRead(conversationId)
+      .then(() => {
+        // Update all related queries to reflect read status
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+      })
+      .catch(error => {
+        console.error('Failed to mark conversation as read:', error);
+      });
+  }, [conversationId, queryClient]);
 
   return result;
 }

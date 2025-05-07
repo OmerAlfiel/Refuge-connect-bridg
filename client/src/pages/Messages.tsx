@@ -18,6 +18,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useConversationMessages, useConversations, useCreateConversation, useSendMessage } from '@/hooks/use-message';
 import { Conversation } from '@/types';
 import { useUsers } from '@/hooks/use-users';
+import { messageService } from '@/services/messageService';
+import { useQueryClient } from '@tanstack/react-query';
 
 
 const Messages: React.FC = () => {
@@ -28,6 +30,7 @@ const Messages: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [initialMessage, setInitialMessage] = useState('');
   const messageEndRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -84,6 +87,10 @@ const Messages: React.FC = () => {
         variant: "destructive",
       });
     }
+  };
+  
+  const hasUnreadMessages = (conversation: Conversation): boolean => {
+    return conversation.messages?.some(m => !m.read && m.senderId !== user?.id) || false;
   };
   
   // Handle creating a new conversation
@@ -160,6 +167,25 @@ const Messages: React.FC = () => {
     }
   };
 
+  const handleSelectConversation = (conversationId: string) => {
+    setActiveConversationId(conversationId);
+    
+    // Mark messages as read when selecting a conversation
+    if (conversationId) {
+      // Call the message service to mark as read
+      messageService.markConversationAsRead(conversationId)
+        .then(() => {
+          // Update conversation list to reflect read status
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+          queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+        })
+        .catch(error => {
+          console.error('Failed to mark conversation as read:', error);
+        });
+    }
+  };
+
   return (
     <Layout>
       <div className="container px-4 md:px-6 py-8">
@@ -222,7 +248,7 @@ const Messages: React.FC = () => {
                           activeConversationId === conversation.id ? "bg-muted/60" : "",
                           hasUnread ? "bg-muted/20" : ""
                         )}
-                        onClick={() => setActiveConversationId(conversation.id)}
+                        onClick={() => handleSelectConversation(conversation.id)}
                       >
                         <div className="relative">
                           {otherParticipants.length === 1 ? (
@@ -294,11 +320,9 @@ const Messages: React.FC = () => {
                       </div>
                     </div>
                   ))
-                ) : filteredConversations.some(c => 
-                  c.messages?.some(m => !m.read && m.senderId !== user?.id)
-                ) ? (
+                ) : filteredConversations.some(c => hasUnreadMessages(c)) ? (
                   filteredConversations
-                    .filter(c => c.messages?.some(m => !m.read && m.senderId !== user?.id))
+                    .filter(c => hasUnreadMessages(c))
                     .map(conversation => {
                       const otherParticipants = getOtherParticipants(conversation);
                       
@@ -309,7 +333,7 @@ const Messages: React.FC = () => {
                             "p-4 border-b cursor-pointer hover:bg-muted/50 flex items-center gap-3",
                             activeConversationId === conversation.id ? "bg-muted/60" : "",
                           )}
-                          onClick={() => setActiveConversationId(conversation.id)}
+                          onClick={() => handleSelectConversation(conversation.id)}
                         >
                           <div className="relative">
                             {otherParticipants.length === 1 ? (
