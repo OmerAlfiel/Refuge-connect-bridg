@@ -308,3 +308,24 @@ export interface CreateMessageRequest {
   content: string;
   conversationId: string;
 }
+
+
+export enum NotificationType {
+  MATCH = 'match',
+  MESSAGE = 'message',
+  SYSTEM = 'system',
+  OFFER = 'offer',
+  ANNOUNCEMENT = 'announcement',
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  type: NotificationType;
+  recipientId: string;
+  entityId?: string;
+  read: boolean;
+  actionTaken: boolean;
+  createdAt: string;
+}

@@ -18,6 +18,11 @@ import configuration from './config/configuration';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MessagesModule } from './messages/messages.module';
 import { Message } from './messages/entities/message.entity';
+import { NotificationsModule } from './notifications/notifications.module';
+import { WebsocketModule } from './webSocket/websocket.module';
+import { Notification } from './notifications/entities/notification.entity';
+
+
 
 @Module({
   imports: [
@@ -32,14 +37,15 @@ import { Message } from './messages/entities/message.entity';
     }),
     LocalConfigModule,
     DatabaseModule,
-    // Add TypeOrmModule.forFeature here to ensure User entity is registered
-    TypeOrmModule.forFeature([User, Need, Offer, Match, Message]),
+    TypeOrmModule.forFeature([User, Need, Offer, Match, Message, Notification]),
     AuthModule,
     UsersModule,
     NeedsModule,
     OffersModule,
     MatchesModule,
     MessagesModule,
+    NotificationsModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],

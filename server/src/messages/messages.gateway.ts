@@ -25,6 +25,7 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
   @WebSocketServer()
   server: Server;
   private readonly logger = new Logger(MessagesGateway.name);
+  private userSocketMap = new Map<string, string[]>();
 
   constructor(
     private messagesService: MessagesService,
@@ -36,7 +37,6 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
     try {
       this.logger.log(`Client trying to connect: ${client.id}`);
       
-      // Extract token from auth object or headers
       const token = client.handshake.auth?.token || 
                     client.handshake.headers?.authorization?.split(' ')[1];
       
@@ -48,19 +48,25 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
   
       try {
         const payload = this.jwtService.verify(token);
-        this.logger.log(`Token verified for user ID: ${payload.sub}`);
+        const userId = payload.sub;
+        this.logger.log(`Token verified for user ID: ${userId}`);
         
-        const user = await this.usersService.findOne(payload.sub);
+        const user = await this.usersService.findOne(userId);
         if (!user) {
-          this.logger.warn(`User not found for ID: ${payload.sub}`);
+          this.logger.warn(`User not found for ID: ${userId}`);
           client.disconnect();
           return;
         }
   
-        // Store user data in socket
+        // Store user data and track socket
         client.data.user = user;
-        client.join(`user:${user.id}`);
-        this.logger.log(`Client connected: ${client.id}, user: ${user.id} (${user.email})`);
+        if (!this.userSocketMap.has(userId)) {
+          this.userSocketMap.set(userId, []);
+        }
+        this.userSocketMap.get(userId).push(client.id);
+
+        client.join(`user:${userId}`);
+        this.logger.log(`Client connected: ${client.id}, user: ${userId} (${user.email})`);
       } catch (error) {
         this.logger.error(`Token verification failed: ${error.message}`);
         client.disconnect();
@@ -72,7 +78,24 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}, user: ${client.data?.user?.id || 'unknown'}`);
+    const userId = client.data?.user?.id;
+    if (userId) {
+      const sockets = this.userSocketMap.get(userId);
+      if (sockets) {
+        const index = sockets.indexOf(client.id);
+        if (index !== -1) {
+          sockets.splice(index, 1);
+          if (sockets.length === 0) {
+            this.userSocketMap.delete(userId);
+          }
+        }
+      }
+    }
+    this.logger.log(`Client disconnected: ${client.id}, user: ${userId || 'unknown'}`);
+  }
+
+  emitToUser(userId: string, event: string, data: any) {
+    this.server.to(`user:${userId}`).emit(event, data);
   }
 
   @UseGuards(WsJwtGuard)

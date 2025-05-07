@@ -1,97 +1,203 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bell, Check, Heart, Home, FileText, MessageCircle, X } from 'lucide-react';
+import { Bell, Check, Heart, Home, FileText, MessageCircle, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { 
+  useNotifications, 
+  useMarkNotificationAsRead, 
+  useMarkAllNotificationsAsRead,
+  useMarkNotificationActionTaken,
+  useDeleteNotification
+} from '@/hooks/use-notification';
+import { Notification, NotificationType } from '@/types';
+
 
 const Notifications: React.FC = () => {
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState([
-    {
-      id: '1',
-      type: 'match',
-      title: 'New Match Found',
-      description: 'Sarah Miller has offered a temporary room matching your need.',
-      time: '10 mins ago',
-      read: false,
-      actionTaken: false,
-    },
-    {
-      id: '2',
-      type: 'message',
-      title: 'New Message',
-      description: 'You received a message from Legal Aid Society about your appointment.',
-      time: '1 hour ago',
-      read: true,
-      actionTaken: false,
-    },
-    {
-      id: '3',
-      type: 'system',
-      title: 'Verification Complete',
-      description: 'Your account has been verified. You can now access all features.',
-      time: 'Yesterday',
-      read: true,
-      actionTaken: true,
-    },
-    {
-      id: '4',
-      type: 'offer',
-      title: 'Offer Accepted',
-      description: 'Ahmed Hassan has accepted your translation help offer.',
-      time: '2 days ago',
-      read: true,
-      actionTaken: true,
-    },
-    {
-      id: '5',
-      type: 'announcement',
-      title: 'New Announcement',
-      description: 'Free Medical Camp available at Central Community Center on May 15, 2023.',
-      time: '3 days ago',
-      read: false,
-      actionTaken: false,
-    },
-  ]);
   
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(notifications.map(notification => 
-      notification.id === id ? { ...notification, read: true } : notification
-    ));
-    toast({
-      title: "Notification marked as read",
-    });
+  // Get notifications
+  const { data: allNotifications = [], isLoading } = useNotifications() as {
+    data: Notification[];
+    isLoading: boolean;
+  }
+  const { data: unreadNotifications = [], isLoading: isLoadingUnread } = useNotifications({ read: false }) as {
+    data: Notification[];
+    isLoading: boolean;
+  }
+  
+  // Mutations
+  const markAsReadMutation = useMarkNotificationAsRead();
+  const markAllAsReadMutation = useMarkAllNotificationsAsRead();
+  const markActionTakenMutation = useMarkNotificationActionTaken();
+  const deleteNotificationMutation = useDeleteNotification();
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await markAsReadMutation.mutateAsync(id);
+      toast({
+        title: "Notification marked as read",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to mark notification as read",
+        variant: "destructive",
+      });
+    }
   };
   
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map(notification => ({ ...notification, read: true })));
-    toast({
-      title: "All notifications marked as read",
-    });
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsReadMutation.mutateAsync();
+      toast({
+        title: "All notifications marked as read",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to mark notifications as read",
+        variant: "destructive",
+      });
+    }
   };
   
-  const handleActionTaken = (id: string) => {
-    setNotifications(notifications.map(notification => 
-      notification.id === id ? { ...notification, actionTaken: true } : notification
-    ));
-    toast({
-      title: "Action recorded",
-      description: "You've taken action on this notification.",
-    });
+  const handleActionTaken = async (id: string, type: NotificationType, entityId?: string) => {
+    try {
+      await markActionTakenMutation.mutateAsync(id);
+      
+      // Navigate based on notification type
+      // Will be handled by the Link component, we just mark it as actioned
+      
+      toast({
+        title: "Action recorded",
+        description: "You've taken action on this notification.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to record action",
+        variant: "destructive",
+      });
+    }
   };
   
-  const handleDeleteNotification = (id: string) => {
-    setNotifications(notifications.filter(notification => notification.id !== id));
-    toast({
-      title: "Notification deleted",
-    });
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      await deleteNotificationMutation.mutateAsync(id);
+      toast({
+        title: "Notification deleted",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete notification",
+        variant: "destructive",
+      });
+    }
   };
   
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const formatNotificationTime = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+      
+      if (diffInSeconds < 60) {
+        return 'just now';
+      }
+      
+      const diffInMinutes = Math.floor(diffInSeconds / 60);
+      if (diffInMinutes < 60) {
+        return `${diffInMinutes} min${diffInMinutes === 1 ? '' : 's'} ago`;
+      }
+      
+      const diffInHours = Math.floor(diffInMinutes / 60);
+      if (diffInHours < 24) {
+        return `${diffInHours} hour${diffInHours === 1 ? '' : 's'} ago`;
+      }
+      
+      const diffInDays = Math.floor(diffInHours / 24);
+      if (diffInDays < 7) {
+        return `${diffInDays} day${diffInDays === 1 ? '' : 's'} ago`;
+      }
+      
+      return format(date, 'MMM d, yyyy');
+    } catch {
+      return 'unknown time';
+    }
+  };
+
+  const getNotificationIcon = (type: NotificationType) => {
+    switch(type) {
+      case NotificationType.MATCH:
+        return <Heart className="h-6 w-6" />;
+      case NotificationType.MESSAGE:
+        return <MessageCircle className="h-6 w-6" />;
+      case NotificationType.SYSTEM:
+        return <Bell className="h-6 w-6" />;
+      case NotificationType.OFFER:
+        return <Home className="h-6 w-6" />;
+      case NotificationType.ANNOUNCEMENT:
+        return <FileText className="h-6 w-6" />;
+      default:
+        return <Bell className="h-6 w-6" />;
+    }
+  };
+  
+  const getNotificationIconBackground = (type: NotificationType) => {
+    switch(type) {
+      case NotificationType.MATCH:
+        return "bg-volunteer-100 text-volunteer-700";
+      case NotificationType.MESSAGE:
+        return "bg-blue-100 text-blue-700";
+      case NotificationType.SYSTEM:
+        return "bg-muted text-muted-foreground";
+      case NotificationType.OFFER:
+        return "bg-green-100 text-green-700";
+      case NotificationType.ANNOUNCEMENT:
+        return "bg-amber-100 text-amber-700";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
+  };
+  
+  const getActionButtonText = (type: NotificationType) => {
+    switch(type) {
+      case NotificationType.MATCH:
+        return "View Match";
+      case NotificationType.MESSAGE:
+        return "Reply";
+      case NotificationType.OFFER:
+        return "View Details";
+      case NotificationType.ANNOUNCEMENT:
+        return "Learn More";
+      default:
+        return "View";
+    }
+  };
+  
+  const getActionDestination = (type: NotificationType, entityId?: string) => {
+    switch(type) {
+      case NotificationType.MATCH:
+        return `/matches?id=${entityId || ''}`;
+      case NotificationType.MESSAGE:
+        return `/messages?conversation=${entityId || ''}`;
+      case NotificationType.OFFER:
+        return `/offers?id=${entityId || ''}`;
+      case NotificationType.ANNOUNCEMENT:
+        return `/announcements`;
+      default:
+        return '/';
+    }
+  };
+
+  const unreadCount = unreadNotifications.length;
 
   return (
     <Layout>
@@ -111,8 +217,17 @@ const Notifications: React.FC = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleMarkAllAsRead}>
-              <Check className="mr-2 h-4 w-4" /> Mark All as Read
+            <Button 
+              variant="outline" 
+              onClick={handleMarkAllAsRead}
+              disabled={markAllAsReadMutation.isPending || unreadCount === 0}
+            >
+              {markAllAsReadMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="mr-2 h-4 w-4" />
+              )}
+              Mark All as Read
             </Button>
           </div>
         </div>
@@ -124,31 +239,32 @@ const Notifications: React.FC = () => {
           </TabsList>
           
           <TabsContent value="all" className="mt-4 space-y-4">
-            {notifications.length > 0 ? (
-              notifications.map((notification) => (
+            {isLoading ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Loader2 className="h-12 w-12 animate-spin mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-medium text-lg mb-2">Loading notifications</h3>
+                </CardContent>
+              </Card>
+            ) : allNotifications.length > 0 ? (
+              allNotifications.map((notification) => (
                 <Card key={notification.id} className={cn(!notification.read && "border-l-4 border-l-primary")}>
                   <CardContent className="p-4 flex justify-between">
                     <div className="flex gap-4">
                       <div className={cn(
                         "flex h-12 w-12 items-center justify-center rounded-full",
-                        notification.type === 'match' && "bg-volunteer-100 text-volunteer-700",
-                        notification.type === 'message' && "bg-blue-100 text-blue-700",
-                        notification.type === 'system' && "bg-muted text-muted-foreground",
-                        notification.type === 'offer' && "bg-green-100 text-green-700",
-                        notification.type === 'announcement' && "bg-amber-100 text-amber-700",
+                        getNotificationIconBackground(notification.type)
                       )}>
-                        {notification.type === 'match' && <Heart className="h-6 w-6" />}
-                        {notification.type === 'message' && <MessageCircle className="h-6 w-6" />}
-                        {notification.type === 'system' && <Bell className="h-6 w-6" />}
-                        {notification.type === 'offer' && <Home className="h-6 w-6" />}
-                        {notification.type === 'announcement' && <FileText className="h-6 w-6" />}
+                        {getNotificationIcon(notification.type)}
                       </div>
                       <div>
                         <h3 className={cn("font-semibold", notification.read && "font-medium")}>
                           {notification.title}
                         </h3>
                         <p className="text-sm text-muted-foreground">{notification.description}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatNotificationTime(notification.createdAt)}
+                        </p>
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 ml-4">
@@ -157,6 +273,7 @@ const Notifications: React.FC = () => {
                           variant="ghost" 
                           size="sm"
                           onClick={() => handleMarkAsRead(notification.id)}
+                          disabled={markAsReadMutation.isPending}
                         >
                           <Check className="h-4 w-4" />
                         </Button>
@@ -166,23 +283,28 @@ const Notifications: React.FC = () => {
                         variant="ghost" 
                         size="sm"
                         onClick={() => handleDeleteNotification(notification.id)}
+                        disabled={deleteNotificationMutation.isPending}
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
                   </CardContent>
                   
-                  {!notification.actionTaken && notification.type !== 'system' && (
+                  {!notification.actionTaken && notification.type !== NotificationType.SYSTEM && (
                     <CardFooter className="px-4 py-2 bg-muted/30 flex justify-end">
                       <Button 
                         size="sm" 
-                        variant={notification.type === 'match' ? "default" : "outline"}
-                        onClick={() => handleActionTaken(notification.id)}
+                        variant={notification.type === NotificationType.MATCH ? "default" : "outline"}
+                        onClick={() => handleActionTaken(
+                          notification.id, 
+                          notification.type,
+                          notification.entityId
+                        )}
+                        asChild
                       >
-                        {notification.type === 'match' && "View Match"}
-                        {notification.type === 'message' && "Reply"}
-                        {notification.type === 'offer' && "View Details"}
-                        {notification.type === 'announcement' && "Learn More"}
+                        <Link to={getActionDestination(notification.type, notification.entityId)}>
+                          {getActionButtonText(notification.type)}
+                        </Link>
                       </Button>
                     </CardFooter>
                   )}
@@ -200,68 +322,73 @@ const Notifications: React.FC = () => {
           </TabsContent>
           
           <TabsContent value="unread" className="mt-4 space-y-4">
-            {notifications.filter(n => !n.read).length > 0 ? (
-              notifications
-                .filter(n => !n.read)
-                .map((notification) => (
-                  <Card key={notification.id} className="border-l-4 border-l-primary">
-                    <CardContent className="p-4 flex justify-between">
-                      <div className="flex gap-4">
-                        <div className={cn(
-                          "flex h-12 w-12 items-center justify-center rounded-full",
-                          notification.type === 'match' && "bg-volunteer-100 text-volunteer-700",
-                          notification.type === 'message' && "bg-blue-100 text-blue-700",
-                          notification.type === 'system' && "bg-muted text-muted-foreground",
-                          notification.type === 'offer' && "bg-green-100 text-green-700",
-                          notification.type === 'announcement' && "bg-amber-100 text-amber-700",
-                        )}>
-                          {notification.type === 'match' && <Heart className="h-6 w-6" />}
-                          {notification.type === 'message' && <MessageCircle className="h-6 w-6" />}
-                          {notification.type === 'system' && <Bell className="h-6 w-6" />}
-                          {notification.type === 'offer' && <Home className="h-6 w-6" />}
-                          {notification.type === 'announcement' && <FileText className="h-6 w-6" />}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">{notification.title}</h3>
-                          <p className="text-sm text-muted-foreground">{notification.description}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
-                        </div>
+            {isLoadingUnread ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Loader2 className="h-12 w-12 animate-spin mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-medium text-lg mb-2">Loading notifications</h3>
+                </CardContent>
+              </Card>
+            ) : unreadNotifications.length > 0 ? (
+              unreadNotifications.map((notification) => (
+                <Card key={notification.id} className="border-l-4 border-l-primary">
+                  <CardContent className="p-4 flex justify-between">
+                    <div className="flex gap-4">
+                      <div className={cn(
+                        "flex h-12 w-12 items-center justify-center rounded-full",
+                        getNotificationIconBackground(notification.type)
+                      )}>
+                        {getNotificationIcon(notification.type)}
                       </div>
-                      <div className="flex flex-col gap-2 ml-4">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleMarkAsRead(notification.id)}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDeleteNotification(notification.id)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                      <div>
+                        <h3 className="font-semibold">{notification.title}</h3>
+                        <p className="text-sm text-muted-foreground">{notification.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatNotificationTime(notification.createdAt)}
+                        </p>
                       </div>
-                    </CardContent>
-                    
-                    {!notification.actionTaken && notification.type !== 'system' && (
-                      <CardFooter className="px-4 py-2 bg-muted/30 flex justify-end">
-                        <Button 
-                          size="sm" 
-                          variant={notification.type === 'match' ? "default" : "outline"}
-                          onClick={() => handleActionTaken(notification.id)}
-                        >
-                          {notification.type === 'match' && "View Match"}
-                          {notification.type === 'message' && "Reply"}
-                          {notification.type === 'offer' && "View Details"}
-                          {notification.type === 'announcement' && "Learn More"}
-                        </Button>
-                      </CardFooter>
-                    )}
-                  </Card>
-                ))
+                    </div>
+                    <div className="flex flex-col gap-2 ml-4">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleMarkAsRead(notification.id)}
+                        disabled={markAsReadMutation.isPending}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDeleteNotification(notification.id)}
+                        disabled={deleteNotificationMutation.isPending}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                  
+                  {!notification.actionTaken && notification.type !== NotificationType.SYSTEM && (
+                    <CardFooter className="px-4 py-2 bg-muted/30 flex justify-end">
+                      <Button 
+                        size="sm" 
+                        variant={notification.type === NotificationType.MATCH ? "default" : "outline"}
+                        onClick={() => handleActionTaken(
+                          notification.id, 
+                          notification.type,
+                          notification.entityId
+                        )}
+                        asChild
+                      >
+                        <Link to={getActionDestination(notification.type, notification.entityId)}>
+                          {getActionButtonText(notification.type)}
+                        </Link>
+                      </Button>
+                    </CardFooter>
+                  )}
+                </Card>
+              ))
             ) : (
               <Card>
                 <CardContent className="p-8 text-center">
@@ -284,7 +411,9 @@ const Notifications: React.FC = () => {
                 <h3 className="font-medium">Email Notifications</h3>
                 <p className="text-sm text-muted-foreground">Receive important notifications via email</p>
               </div>
-              <Button variant="outline" size="sm">Manage</Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/settings#notifications-section">Manage</Link>
+              </Button>
             </div>
             
             <div className="flex items-center justify-between">
@@ -292,7 +421,9 @@ const Notifications: React.FC = () => {
                 <h3 className="font-medium">Push Notifications</h3>
                 <p className="text-sm text-muted-foreground">Enable browser push notifications</p>
               </div>
-              <Button variant="outline" size="sm">Enable</Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/settings#notifications-section">Enable</Link>
+              </Button>
             </div>
             
             <div className="flex items-center justify-between">
@@ -300,7 +431,9 @@ const Notifications: React.FC = () => {
                 <h3 className="font-medium">Notification Filters</h3>
                 <p className="text-sm text-muted-foreground">Customize which notifications you receive</p>
               </div>
-              <Button variant="outline" size="sm">Configure</Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/settings#notifications-section">Configure</Link>
+              </Button>
             </div>
           </CardContent>
         </Card>

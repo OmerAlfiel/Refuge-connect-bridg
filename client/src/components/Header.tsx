@@ -13,17 +13,15 @@ import { useAuth } from '@/context/AuthContext';
 import { Menu, X, LogOut, User, MessageCircle, Bell } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useUnreadCount } from '@/hooks/use-message';
+import { useUnreadNotificationCount } from '@/hooks/use-notification';
 
 const Header: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   
-  // Use the hook to get real unread message count
   const { data: unreadCount = 0, isLoading: isLoadingUnread } = useUnreadCount();
-  
-  // Keep the mock data for notifications until we implement that feature
-  const unreadNotifications = 3;
+  const { data: unreadNotificationCount = 0 } = useUnreadNotificationCount();
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -85,8 +83,10 @@ const Header: React.FC = () => {
               <Link to="/notifications">
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
-                  {unreadNotifications > 0 && (
-                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">{unreadNotifications}</span>
+                  {unreadNotificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-bold flex items-center justify-center text-primary-foreground">
+                      {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                    </span>
                   )}
                 </Button>
               </Link>
@@ -143,8 +143,10 @@ const Header: React.FC = () => {
                     <Link to="/notifications" className="cursor-pointer">
                       <Bell className="mr-2 h-4 w-4" />
                       <span>Notifications</span>
-                      {unreadNotifications > 0 && (
-                        <Badge variant="outline" className="ml-auto h-4 min-w-4 flex items-center justify-center text-[10px]">{unreadNotifications}</Badge>
+                      {unreadNotificationCount > 0 && (
+                        <Badge variant="outline" className="ml-auto h-4 min-w-4 flex items-center justify-center text-[10px]">
+                          {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                        </Badge>
                       )}
                     </Link>
                   </DropdownMenuItem>
@@ -242,8 +244,10 @@ const Header: React.FC = () => {
                 </Link>
                 <Link to="/notifications" className="text-sm font-medium hover:text-primary flex items-center justify-between" onClick={toggleMobileMenu}>
                   <span>Notifications</span>
-                  {unreadNotifications > 0 && (
-                    <Badge variant="outline" className="text-xs">{unreadNotifications}</Badge>
+                  {unreadNotificationCount > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                    </Badge>
                   )}
                 </Link>
                 <Link to="/settings" className="text-sm font-medium hover:text-primary" onClick={toggleMobileMenu}>
