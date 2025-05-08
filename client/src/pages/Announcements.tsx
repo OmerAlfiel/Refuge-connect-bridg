@@ -25,6 +25,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement, useSubscribeToAnnouncements, useUpdateAnnouncement } from '@/hooks/use-announcements';
 import { AnnouncementDialog } from '@/components/AnnouncementDialog';
+import { AnnouncementDetailsDialog } from '@/components/AnnouncementDetailsDialog';
 
 const AnnouncementsPage: React.FC = () => {
   const { user } = useAuth();
@@ -39,6 +40,8 @@ const AnnouncementsPage: React.FC = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [isSubmittingSubscription, setIsSubmittingSubscription] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedAnnouncementForDetails, setSelectedAnnouncementForDetails] = useState<Announcement | null>(null);
 
   const { data: announcements = [] as Announcement[], isLoading } = useAnnouncements();
   const createAnnouncementMutation = useCreateAnnouncement();
@@ -114,6 +117,11 @@ const AnnouncementsPage: React.FC = () => {
   const handleOpenDeleteDialog = (announcement: Announcement) => {
     setCurrentAnnouncement(announcement);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleOpenDetailsDialog = (announcement: Announcement) => {
+    setSelectedAnnouncementForDetails(announcement);
+    setDetailsDialogOpen(true);
   };
 
   const handleCreateOrUpdateAnnouncement = async (data: CreateAnnouncementRequest) => {
@@ -313,8 +321,24 @@ const AnnouncementsPage: React.FC = () => {
                         <p className="text-sm">{announcement.content}</p>
                       </CardContent>
                       <CardFooter className="flex justify-between border-t pt-4 flex-wrap gap-2">
-                        <div className="text-sm text-muted-foreground">
-                          Posted by: {announcement.postedBy.username} • {format(parseISO(announcement.createdAt), 'MMM d, yyyy')}
+                        <div className="text-sm flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-primary-foreground font-medium">
+                            {announcement.postedBy.name ? announcement.postedBy.name.charAt(0).toUpperCase() : 'U'}
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{announcement.postedBy.name || 'Unknown'}</span>
+                              {announcement.postedBy.role === 'admin' && (
+                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">Admin</span>
+                              )}
+                              {announcement.postedBy.role === 'ngo' && (
+                                <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">NGO</span>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {format(parseISO(announcement.createdAt), 'MMM d, yyyy')}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           {isAdmin && (
@@ -327,7 +351,13 @@ const AnnouncementsPage: React.FC = () => {
                               </Button>
                             </>
                           )}
-                          <Button variant="outline" size="sm">Learn More</Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleOpenDetailsDialog(announcement)}
+                          >
+                            Learn More
+                          </Button>
                         </div>
                       </CardFooter>
                     </Card>
@@ -375,8 +405,24 @@ const AnnouncementsPage: React.FC = () => {
                         <p className="text-sm">{announcement.content}</p>
                       </CardContent>
                       <CardFooter className="flex justify-between border-t pt-4 flex-wrap gap-2">
-                        <div className="text-sm text-muted-foreground">
-                          Posted by: {announcement.postedBy.username} • {format(parseISO(announcement.createdAt), 'MMM d, yyyy')}
+                        <div className="text-sm flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-primary-foreground font-medium">
+                            {announcement.postedBy.name ? announcement.postedBy.name.charAt(0).toUpperCase() : 'U'}
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{announcement.postedBy.name || 'Unknown'}</span>
+                              {announcement.postedBy.role === 'admin' && (
+                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">Admin</span>
+                              )}
+                              {announcement.postedBy.role === 'ngo' && (
+                                <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">NGO</span>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {format(parseISO(announcement.createdAt), 'MMM d, yyyy')}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           {isAdmin && (
@@ -389,7 +435,13 @@ const AnnouncementsPage: React.FC = () => {
                               </Button>
                             </>
                           )}
-                          <Button variant="outline" size="sm">Learn More</Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleOpenDetailsDialog(announcement)}
+                          >
+                            Learn More
+                          </Button>
                         </div>
                       </CardFooter>
                     </Card>
@@ -440,30 +492,52 @@ const AnnouncementsPage: React.FC = () => {
                               </Badge>
                             </div>
                           </div>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm">{announcement.content}</p>
-                        </CardContent>
-                        <CardFooter className="flex justify-between border-t pt-4 flex-wrap gap-2">
-                          <div className="text-sm text-muted-foreground">
-                            Posted by: {announcement.postedBy.username} • {format(parseISO(announcement.createdAt), 'MMM d, yyyy')}
-                          </div>
-                          <div className="flex gap-2">
-                            {isAdmin && (
-                              <>
-                                <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(announcement)}>
-                                  <Edit className="h-4 w-4 mr-1" /> Edit
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => handleOpenDeleteDialog(announcement)}>
-                                  <Trash2 className="h-4 w-4 mr-1" /> Delete
-                                </Button>
-                              </>
-                            )}
-                            <Button variant="outline" size="sm">Learn More</Button>
-                          </div>
-                        </CardFooter>
-                      </Card>
-                  ))
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-sm">{announcement.content}</p>
+                          </CardContent>
+                          <CardFooter className="flex justify-between border-t pt-4 flex-wrap gap-2">
+                            <div className="text-sm flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-primary-foreground font-medium">
+                                {announcement.postedBy.name ? announcement.postedBy.name.charAt(0).toUpperCase() : 'U'}
+                              </div>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{announcement.postedBy.name || 'Unknown'}</span>
+                                  {announcement.postedBy.role === 'admin' && (
+                                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">Admin</span>
+                                  )}
+                                  {announcement.postedBy.role === 'ngo' && (
+                                    <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">NGO</span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(parseISO(announcement.createdAt), 'MMM d, yyyy')}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              {isAdmin && (
+                                <>
+                                  <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(announcement)}>
+                                    <Edit className="h-4 w-4 mr-1" /> Edit
+                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={() => handleOpenDeleteDialog(announcement)}>
+                                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                  </Button>
+                                </>
+                              )}
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleOpenDetailsDialog(announcement)}
+                              >
+                                Learn More
+                              </Button>
+                            </div>
+                          </CardFooter>
+                        </Card>
+                    ))
                 ) : (
                   <div className="text-center py-12">
                     <Calendar className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
@@ -649,6 +723,13 @@ const AnnouncementsPage: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AnnouncementDetailsDialog
+        isOpen={detailsDialogOpen}
+        onClose={() => setDetailsDialogOpen(false)}
+        announcement={selectedAnnouncementForDetails}
+        getCategoryBadgeColor={getCategoryBadgeColor}
+      />
     </Layout>
   );
 };

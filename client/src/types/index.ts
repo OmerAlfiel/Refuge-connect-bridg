@@ -330,9 +330,12 @@ export interface Announcement {
   region: string;
   postedBy: {
     id: string;
-    firstName?: string;
-    lastName?: string;
-    username: string;
+    name: string;
+    organizationName?: string;
+    role: UserRole;
+    email: string;
+    contact?: string;
+    website?: string;
   };
   postedById: string;
   eventDate?: string;
