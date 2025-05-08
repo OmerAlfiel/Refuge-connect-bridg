@@ -57,7 +57,7 @@ export class AnnouncementsController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.NGO) // Use enum values here too
+  @Roles(UserRole.ADMIN, UserRole.NGO)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an announcement (Admin/NGO only)' })
   @ApiResponse({ status: 200, description: 'Announcement successfully updated.' })
@@ -67,7 +67,7 @@ export class AnnouncementsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.NGO) // And here as well
+  @Roles(UserRole.ADMIN, UserRole.NGO)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete an announcement (Admin/NGO only)' })
   @ApiResponse({ status: 204, description: 'Announcement successfully deleted.' })

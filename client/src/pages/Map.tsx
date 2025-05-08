@@ -10,127 +10,186 @@ import MapComponent, { MapComponentRef } from '@/components/MapComponent';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/context/AuthContext';
+import { LocationType } from '@/types';
+import { locationsService } from '@/services/locationsService';
 
 const MapPage: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('all');
-  const [filteredLocations, setFilteredLocations] = useState<any[]>([]);
+  const [filteredLocations, setFilteredLocations] = useState<LocationType[]>([]);
   const { toast } = useToast();
   const mapRef = useRef<MapComponentRef>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
-  const [activeLocation, setActiveLocation] = useState<any>(null);
+  const [activeLocation, setActiveLocation] = useState<LocationType | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const { isAuthenticated } = useAuth();
   
-  const locations = [
-    {
-      id: '1',
-      name: 'Community Center',
-      type: 'resource',
-      address: '123 Main St, Berlin',
-      services: ['Food distribution', 'Legal advice', 'Language classes'],
-      coordinates: { lat: 52.52, lng: 13.405 },
-      description: 'Community center offering various services for refugees',
-      contactInfo: {
-        phone: '+49 30 123456789',
-        email: 'community@example.com',
-        website: 'https://communitycentre.example.com',
-        hours: 'Monday-Friday: 9am-5pm, Saturday: 10am-2pm'
-      }
-    },
-    {
-      id: '2',
-      name: 'Medical Clinic',
-      type: 'medical',
-      address: '456 Health Ave, Berlin',
-      services: ['Basic healthcare', 'Mental health support', 'Vaccinations'],
-      coordinates: { lat: 52.51, lng: 13.41 },
-      description: 'Free healthcare services for refugees and displaced people',
-      contactInfo: {
-        phone: '+49 30 987654321',
-        email: 'clinic@example.com',
-        website: 'https://medicalclinic.example.com',
-        hours: 'Monday-Friday: 8am-8pm, Weekends: 10am-4pm'
-      }
-    },
-    {
-      id: '3',
-      name: 'Employment Office',
-      type: 'employment',
-      address: '789 Work St, Berlin',
-      services: ['Job placement', 'Resume building', 'Skills training'],
-      coordinates: { lat: 52.53, lng: 13.39 },
-      description: 'Employment assistance and job training for newcomers'
-    },
-    {
-      id: '4',
-      name: 'Housing Assistance Center',
-      type: 'housing',
-      address: '101 Shelter Rd, Berlin',
-      services: ['Emergency housing', 'Long-term housing assistance', 'Furniture donations'],
-      coordinates: { lat: 52.50, lng: 13.42 },
-      description: 'Housing support and emergency shelter services'
-    },
-    {
-      id: '5',
-      name: 'Legal Aid Office',
-      type: 'legal',
-      address: '202 Justice Ave, Berlin',
-      services: ['Asylum applications', 'Legal representation', 'Document translation'],
-      coordinates: { lat: 52.49, lng: 13.43 },
-      description: 'Free legal assistance for refugees and asylum seekers'
-    },
-    {
-      id: '6',
-      name: 'Education Center',
-      type: 'education',
-      address: '303 School St, Berlin',
-      services: ['Language courses', 'Computer literacy', 'School enrollment assistance'],
-      coordinates: { lat: 52.54, lng: 13.38 },
-      description: 'Educational services and school integration support'
-    },
-  ];
+  const [formData, setFormData] = useState({
+    name: '',
+    type: 'resource',
+    address: '',
+    description: '',
+    services: '',
+    coordinates: { lat: 0, lng: 0 },
+    contactInfo: {
+      phone: '',
+      email: '',
+      website: '',
+      hours: ''
+    }
+  });
 
-  // Filter locations based on search query and active filter
+  // Get user's location on mount
   useEffect(() => {
-    let filtered = [...locations];
-    
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        location => 
-          location.name.toLowerCase().includes(query) || 
-          location.description.toLowerCase().includes(query) ||
-          location.type.toLowerCase().includes(query)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+        },
+        (error) => {
+          console.error('Error getting user location:', error);
+          setUserLocation({ lat: 52.52, lng: 13.405 });
+        }
       );
+    } else {
+      setUserLocation({ lat: 52.52, lng: 13.405 });
     }
-    
-    // Apply type filter
-    if (activeFilter !== 'all') {
-      filtered = filtered.filter(location => location.type === activeFilter);
+  }, []);
+
+  // Fetch locations when user location is set
+  useEffect(() => {
+    const fetchLocations = async () => {
+      if (userLocation) {
+        try {
+          setIsLoading(true);
+          const locations = await locationsService.getAll({
+            lat: userLocation.lat,
+            lng: userLocation.lng,
+            radius: 50
+          });
+          setFilteredLocations(locations);
+        } catch (error) {
+          console.error('Failed to fetch locations:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load resource locations.",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchLocations();
+  }, [userLocation, toast]);
+
+  // Update filter handling with API calls
+  useEffect(() => {
+    const fetchFilteredLocations = async () => {
+      try {
+        setIsLoading(true);
+        const locations = await locationsService.getAll({
+          search: searchQuery,
+          type: activeFilter !== 'all' ? activeFilter : undefined,
+          lat: userLocation?.lat,
+          lng: userLocation?.lng,
+          radius: 50
+        });
+        setFilteredLocations(locations);
+      } catch (error) {
+        console.error('Failed to fetch filtered locations:', error);
+        toast({
+          title: "Error",
+          description: "Failed to filter resources.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFilteredLocations();
+  }, [searchQuery, activeFilter, userLocation, toast]);
+
+  // Update form handling
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setFormData(prev => {
+        const parentObj = prev[parent as keyof typeof prev];
+        return {
+          ...prev,
+          [parent]: typeof parentObj === 'object' && parentObj !== null 
+            ? { ...parentObj, [child]: value } 
+            : { [child]: value }
+        };
+      });
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
-    
-    setFilteredLocations(filtered);
-  }, [searchQuery, activeFilter]);
+  };
+
+  // Update resource submission
+  const handleAddResource = async () => {
+    try {
+      const servicesArray = formData.services.split(',').map(s => s.trim()).filter(Boolean);
+      await locationsService.create({
+        ...formData,
+        services: servicesArray,
+        coordinates: userLocation || { lat: 52.52, lng: 13.405 }
+      });
+      
+      setIsAddDialogOpen(false);
+      toast({
+        title: "Resource submitted",
+        description: "Your resource has been submitted successfully.",
+      });
+      
+      // Reset form and refresh locations
+      setFormData({
+        name: '',
+        type: 'resource',
+        address: '',
+        description: '',
+        services: '',
+        coordinates: { lat: 0, lng: 0 },
+        contactInfo: { phone: '', email: '', website: '', hours: '' }
+      });
+      
+      if (userLocation) {
+        const locations = await locationsService.getAll({
+          lat: userLocation.lat,
+          lng: userLocation.lng,
+          radius: 50
+        });
+        setFilteredLocations(locations);
+      }
+    } catch (error) {
+      console.error('Error adding resource:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add resource. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleLocationClick = (locationId: string) => {
     setSelectedLocation(locationId);
     
     // Find the location and fly to it on the map
-    const location = locations.find(loc => loc.id === locationId);
+    const location = filteredLocations.find(loc => loc.id === locationId);
     if (location && mapRef.current) {
       mapRef.current.flyTo(location.coordinates.lng, location.coordinates.lat);
     }
-  };
-  
-  const handleAddResource = () => {
-    setIsAddDialogOpen(false);
-    toast({
-      title: "Resource submitted",
-      description: "Your resource has been submitted for review.",
-    });
   };
   
   const handleGetDirections = () => {
@@ -149,7 +208,7 @@ const MapPage: React.FC = () => {
   };
 
   const handleDetailsClick = (locationId: string) => {
-    const location = locations.find(loc => loc.id === locationId);
+    const location = filteredLocations.find(loc => loc.id === locationId);
     if (location) {
       setActiveLocation(location);
       setIsDetailsDialogOpen(true);
@@ -157,7 +216,7 @@ const MapPage: React.FC = () => {
   };
 
   const handleContactClick = (locationId: string) => {
-    const location = locations.find(loc => loc.id === locationId);
+    const location = filteredLocations.find(loc => loc.id === locationId);
     if (location) {
       setActiveLocation(location);
       setIsContactDialogOpen(true);
@@ -166,7 +225,7 @@ const MapPage: React.FC = () => {
   
   // Initialize filtered locations on component mount
   useEffect(() => {
-    setFilteredLocations(locations);
+    setFilteredLocations([]);
   }, []);
 
   const getTypeColor = (type: string) => {
@@ -215,11 +274,22 @@ const MapPage: React.FC = () => {
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <label htmlFor="name" className="text-sm font-medium">Name</label>
-                    <Input id="name" placeholder="Resource name" required />
+                    <Input
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleFormChange}
+                      placeholder="Resource name"
+                      required
+                    />
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="type" className="text-sm font-medium">Type</label>
-                    <Select>
+                    <Select
+                      name="type"
+                      value={formData.type}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select resource type" />
                       </SelectTrigger>
@@ -235,18 +305,41 @@ const MapPage: React.FC = () => {
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="address" className="text-sm font-medium">Address</label>
-                    <Input id="address" placeholder="Full address" required />
+                    <Input
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleFormChange}
+                      placeholder="Full address"
+                      required
+                    />
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="services" className="text-sm font-medium">Services (comma separated)</label>
-                    <Input id="services" placeholder="Service 1, Service 2, etc." required />
+                    <Input
+                      id="services"
+                      name="services"
+                      value={formData.services}
+                      onChange={handleFormChange}
+                      placeholder="Service 1, Service 2, etc."
+                      required
+                    />
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="description" className="text-sm font-medium">Description</label>
-                    <Input id="description" placeholder="Brief description of the resource" required />
+                    <Input
+                      id="description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleFormChange}
+                      placeholder="Brief description of the resource"
+                      required
+                    />
                   </div>
                 </div>
-                <Button onClick={handleAddResource}>Submit Resource</Button>
+                <Button onClick={handleAddResource} disabled={!isAuthenticated}>
+                  Submit Resource
+                </Button>
               </DialogContent>
             </Dialog>
           </div>

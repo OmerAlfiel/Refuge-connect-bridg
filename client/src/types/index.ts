@@ -359,3 +359,32 @@ export interface AnnouncementSubscription {
   categories?: string[];
   regions?: string[];
 }
+
+
+
+export interface LocationType {
+  id: string;
+  name: string;
+  type: string;
+  address: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  description: string;
+  services: string[];
+  contactInfo?: {
+    phone?: string;
+    email?: string;
+    website?: string;
+    hours?: string;
+  };
+}
+
+export interface QueryOptions {
+  search?: string;
+  type?: string;
+  lat?: number;
+  lng?: number;
+  radius?: number;
+}

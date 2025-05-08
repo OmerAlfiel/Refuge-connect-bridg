@@ -22,6 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { WebsocketModule } from './webSocket/websocket.module';
 import { Notification } from './notifications/entities/notification.entity';
 import { AnnouncementsModule } from './announcement/announcement.module';
+import { GeolocationModule } from './geolocation/geolocation.module';
 
 
 
@@ -49,6 +50,7 @@ import { AnnouncementsModule } from './announcement/announcement.module';
     NotificationsModule,
     WebsocketModule,
     AnnouncementsModule,
+    GeolocationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
