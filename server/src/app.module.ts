@@ -21,6 +21,8 @@ import { Message } from './messages/entities/message.entity';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WebsocketModule } from './webSocket/websocket.module';
 import { Notification } from './notifications/entities/notification.entity';
+import { AnnouncementsModule } from './announcement/announcement.module';
+
 
 
 
@@ -46,6 +48,7 @@ import { Notification } from './notifications/entities/notification.entity';
     MessagesModule,
     NotificationsModule,
     WebsocketModule,
+    AnnouncementsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,14 +1,13 @@
 
 import React from 'react';
 import { User } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Bell, Shield, AlertTriangle, CheckCircle, Users, Flag, 
   UserCheck, UserX, MessageSquare, Settings 
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { Progress } from "@/components/ui/progress";
 
 interface AdminDashboardProps {

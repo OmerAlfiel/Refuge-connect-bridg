@@ -4,9 +4,10 @@ import { User } from '../../users/entities/user.entity';
 export enum NotificationType {
   MATCH = 'match',
   MESSAGE = 'message',
-  SYSTEM = 'system',
   OFFER = 'offer',
+  NEED = 'need',
   ANNOUNCEMENT = 'announcement',
+  SYSTEM = 'system',
 }
 
 @Entity()

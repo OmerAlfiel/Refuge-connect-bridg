@@ -2,12 +2,19 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import { Message } from '@/types';
+import { toast } from '@/components/ui/use-toast';
 
 interface WebSocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   sendMessage: (conversationId: string, content: string) => Promise<Message | null>;
   markConversationAsRead: (conversationId: string) => void;
+}
+
+interface AnnouncementData {
+  title: string;
+  content: string;
+  important: boolean;
 }
 
 const WebSocketContext = createContext<WebSocketContextType>({
@@ -43,6 +50,17 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     newSocket.on('disconnect', () => {
       console.log('WebSocket disconnected');
       setIsConnected(false);
+    });
+
+    newSocket.on('newAnnouncement', (data: AnnouncementData) => {
+      console.log('New announcement received:', data);
+      if (data.important) {
+        toast({
+          title: "⚠️ Important Announcement",
+          description: data.title,
+          variant: "destructive",
+        });
+      }
     });
 
     setSocket(newSocket);

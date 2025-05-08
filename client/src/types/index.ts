@@ -265,16 +265,6 @@ export interface Message {
   read: boolean;
 }
 
-export interface Announcement {
-  id: string;
-  title: string;
-  content: string;
-  region?: string;
-  createdBy: string;
-  createdAt: Date;
-  expiresAt?: Date;
-}
-
 
 
 export interface Message {
@@ -328,4 +318,41 @@ export interface Notification {
   read: boolean;
   actionTaken: boolean;
   createdAt: string;
+}
+
+
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  region: string;
+  postedBy: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    username: string;
+  };
+  postedById: string;
+  eventDate?: string;
+  important: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAnnouncementRequest {
+  id?: string; // Used for editing existing announcements
+  title: string;
+  content: string;
+  category: string;
+  region: string;
+  important: boolean;
+  eventDate?: Date;
+}
+
+export interface AnnouncementSubscription {
+  email: string;
+  categories?: string[];
+  regions?: string[];
 }

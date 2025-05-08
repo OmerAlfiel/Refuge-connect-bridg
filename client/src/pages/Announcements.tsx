@@ -1,91 +1,51 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Calendar, MapPin, Bell, Filter } from 'lucide-react';
+import { Search, Calendar, MapPin, Bell, Edit, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/AuthContext';
 
-const Announcements: React.FC = () => {
+import { Announcement, CreateAnnouncementRequest } from '@/types';
+import { format, parseISO } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Checkbox } from '@/components/ui/checkbox';
+import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement, useSubscribeToAnnouncements, useUpdateAnnouncement } from '@/hooks/use-announcements';
+import { AnnouncementDialog } from '@/components/AnnouncementDialog';
+
+const AnnouncementsPage: React.FC = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
-  
-  // Sample announcement data
-  const announcements = [
-    {
-      id: '1',
-      title: 'Free Medical Camp',
-      content: 'Medical services available at Central Community Center on May 15, 2023. Bring your ID documents. Services include general health check-ups, vaccinations, dental check-ups, and eye examinations.',
-      category: 'medical',
-      region: 'Berlin',
-      postedBy: 'Medical Aid International',
-      date: new Date(2023, 4, 10),
-      eventDate: new Date(2023, 4, 15),
-      important: true,
-    },
-    {
-      id: '2',
-      title: 'Language Classes Registration',
-      content: 'Free language classes registration starting next week. German, English and French available. Classes will be held at the Public Library and are available for all levels from beginners to advanced.',
-      category: 'education',
-      region: 'Berlin',
-      postedBy: 'Education Support Network',
-      date: new Date(2023, 4, 8),
-      eventDate: new Date(2023, 4, 20),
-      important: false,
-    },
-    {
-      id: '3',
-      title: 'Job Fair for Refugees',
-      content: 'Local businesses are participating in a job fair specifically for refugees. Bring your CV and any work certificates. Translation services will be available. Various sectors including hospitality, construction, IT, and healthcare.',
-      category: 'employment',
-      region: 'Munich',
-      postedBy: 'Refugee Employment Initiative',
-      date: new Date(2023, 4, 5),
-      eventDate: new Date(2023, 4, 25),
-      important: true,
-    },
-    {
-      id: '4',
-      title: 'Housing Assistance Workshop',
-      content: 'Workshop on navigating housing options, tenant rights, and assistance programs. Legal advisors will be present to answer questions about housing contracts and regulations.',
-      category: 'housing',
-      region: 'Hamburg',
-      postedBy: 'Shelter Network',
-      date: new Date(2023, 4, 3),
-      eventDate: new Date(2023, 4, 18),
-      important: false,
-    },
-    {
-      id: '5',
-      title: 'Winter Clothing Distribution',
-      content: 'Winter clothing items will be distributed at the Community Hall. Items include jackets, boots, gloves, and scarves for adults and children. First come, first served basis.',
-      category: 'aid',
-      region: 'Berlin',
-      postedBy: 'Humanitarian Aid Society',
-      date: new Date(2023, 4, 1),
-      eventDate: new Date(2023, 4, 12),
-      important: false,
-    },
-    {
-      id: '6',
-      title: 'Legal Aid Consultation Day',
-      content: 'Free legal consultations for asylum applications and immigration issues. Appointments required. Translation services available in Arabic, Farsi, and French.',
-      category: 'legal',
-      region: 'Frankfurt',
-      postedBy: 'Legal Aid Society',
-      date: new Date(2023, 3, 28),
-      eventDate: new Date(2023, 4, 22),
-      important: true,
-    },
-  ];
-  
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentAnnouncement, setCurrentAnnouncement] = useState<Announcement | null>(null);
+  const [subscriptionEmail, setSubscriptionEmail] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [isSubmittingSubscription, setIsSubmittingSubscription] = useState(false);
+
+  const { data: announcements = [] as Announcement[], isLoading } = useAnnouncements();
+  const createAnnouncementMutation = useCreateAnnouncement();
+  const updateAnnouncementMutation = useUpdateAnnouncement();
+  const deleteAnnouncementMutation = useDeleteAnnouncement();
+  const subscribeToAnnouncementsMutation = useSubscribeToAnnouncements();
+
   const categories = [
     { value: 'all', label: 'All Categories' },
     { value: 'medical', label: 'Medical' },
@@ -114,7 +74,11 @@ const Announcements: React.FC = () => {
     return matchesSearch && matchesCategory && matchesRegion;
   });
   
-  const upcomingEvents = [...announcements].sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime()).filter(a => a.eventDate > new Date()).slice(0, 3);
+  const upcomingEvents = (announcements || [])
+    .filter(a => a.eventDate)
+    .sort((a, b) => new Date(a.eventDate!).getTime() - new Date(b.eventDate!).getTime())
+    .filter(a => new Date(a.eventDate!) > new Date())
+    .slice(0, 3);
   
   const getCategoryBadgeColor = (category: string) => {
     switch(category) {
@@ -136,6 +100,116 @@ const Announcements: React.FC = () => {
   };
   
   const isAdmin = user?.role === 'admin' || user?.role === 'ngo';
+
+  const handleOpenCreateDialog = () => {
+    setCurrentAnnouncement(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEditDialog = (announcement: Announcement) => {
+    setCurrentAnnouncement(announcement);
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenDeleteDialog = (announcement: Announcement) => {
+    setCurrentAnnouncement(announcement);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleCreateOrUpdateAnnouncement = async (data: CreateAnnouncementRequest) => {
+    try {
+      if (currentAnnouncement) {
+        // Update existing announcement
+        await updateAnnouncementMutation.mutateAsync({
+          id: currentAnnouncement.id,
+          announcement: data
+        });
+        toast({
+          title: "Announcement updated",
+          description: "Your announcement has been successfully updated.",
+        });
+      } else {
+        // Create new announcement
+        await createAnnouncementMutation.mutateAsync(data);
+        toast({
+          title: "Announcement created",
+          description: "Your announcement has been successfully published.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save announcement",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAnnouncement = async () => {
+    if (!currentAnnouncement) return;
+    
+    try {
+      await deleteAnnouncementMutation.mutateAsync(currentAnnouncement.id);
+      setIsDeleteDialogOpen(false);
+      toast({
+        title: "Announcement deleted",
+        description: "The announcement has been removed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete announcement",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subscriptionEmail) return;
+    
+    setIsSubmittingSubscription(true);
+    try {
+      await subscribeToAnnouncementsMutation.mutateAsync({
+        email: subscriptionEmail,
+        categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+        regions: selectedRegions.length > 0 ? selectedRegions : undefined,
+      });
+      
+      toast({
+        title: "Subscription successful",
+        description: "You'll now receive notifications for new announcements.",
+      });
+      
+      setSubscriptionEmail('');
+      setSelectedCategories([]);
+      setSelectedRegions([]);
+    } catch (error) {
+      toast({
+        title: "Subscription failed",
+        description: error instanceof Error ? error.message : "Failed to subscribe",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingSubscription(false);
+    }
+  };
+
+  const handleCategoryCheckboxChange = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const handleRegionCheckboxChange = (region: string) => {
+    setSelectedRegions(prev => 
+      prev.includes(region) 
+        ? prev.filter(r => r !== region)
+        : [...prev, region]
+    );
+  };
   
   return (
     <Layout>
@@ -143,7 +217,7 @@ const Announcements: React.FC = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Announcements</h1>
           {isAdmin && (
-            <Button>
+            <Button onClick={handleOpenCreateDialog}>
               <Bell className="mr-2 h-4 w-4" /> Create Announcement
             </Button>
           )}
@@ -153,25 +227,12 @@ const Announcements: React.FC = () => {
           {/* Main Content */}
           <div className="md:col-span-2">
             <Tabs defaultValue="all">
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
                 <TabsList>
                   <TabsTrigger value="all">All Announcements</TabsTrigger>
                   <TabsTrigger value="important">Important</TabsTrigger>
                   <TabsTrigger value="events">Upcoming Events</TabsTrigger>
                 </TabsList>
-                
-                {isAdmin && (
-                  <Select>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Manage" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="edit">Edit Announcements</SelectItem>
-                      <SelectItem value="delete">Delete Announcements</SelectItem>
-                      <SelectItem value="archive">Archive Announcements</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
               </div>
               
               <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -213,7 +274,12 @@ const Announcements: React.FC = () => {
               </div>
               
               <TabsContent value="all" className="space-y-4 mt-0">
-                {filteredAnnouncements.length > 0 ? (
+                {isLoading ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary mb-4" />
+                    <div className="text-xl font-medium mb-2">Loading announcements</div>
+                  </div>
+                ) : filteredAnnouncements.length > 0 ? (
                   filteredAnnouncements.map((announcement) => (
                     <Card key={announcement.id} className={announcement.important ? 'border-l-4 border-l-red-500' : ''}>
                       <CardHeader className="pb-2">
@@ -221,10 +287,12 @@ const Announcements: React.FC = () => {
                           <div>
                             <CardTitle>{announcement.title}</CardTitle>
                             <CardDescription className="flex items-center gap-2 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {announcement.eventDate.toLocaleDateString()}
-                              </span>
+                              {announcement.eventDate && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(parseISO(announcement.eventDate), 'MMM d, yyyy')}
+                                </span>
+                              )}
                               <span className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 {announcement.region}
@@ -244,11 +312,23 @@ const Announcements: React.FC = () => {
                       <CardContent>
                         <p className="text-sm">{announcement.content}</p>
                       </CardContent>
-                      <CardFooter className="flex justify-between border-t pt-4">
+                      <CardFooter className="flex justify-between border-t pt-4 flex-wrap gap-2">
                         <div className="text-sm text-muted-foreground">
-                          Posted by: {announcement.postedBy} • {announcement.date.toLocaleDateString()}
+                          Posted by: {announcement.postedBy.username} • {format(parseISO(announcement.createdAt), 'MMM d, yyyy')}
                         </div>
-                        <Button variant="outline" size="sm">Learn More</Button>
+                        <div className="flex gap-2">
+                          {isAdmin && (
+                            <>
+                              <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(announcement)}>
+                                <Edit className="h-4 w-4 mr-1" /> Edit
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleOpenDeleteDialog(announcement)}>
+                                <Trash2 className="h-4 w-4 mr-1" /> Delete
+                              </Button>
+                            </>
+                          )}
+                          <Button variant="outline" size="sm">Learn More</Button>
+                        </div>
                       </CardFooter>
                     </Card>
                   ))
@@ -263,7 +343,12 @@ const Announcements: React.FC = () => {
               </TabsContent>
               
               <TabsContent value="important" className="space-y-4 mt-0">
-                {filteredAnnouncements.filter(a => a.important).length > 0 ? (
+                {isLoading ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary mb-4" />
+                    <div className="text-xl font-medium mb-2">Loading important announcements</div>
+                  </div>
+                ) : filteredAnnouncements.filter(a => a.important).length > 0 ? (
                   filteredAnnouncements.filter(a => a.important).map((announcement) => (
                     <Card key={announcement.id} className="border-l-4 border-l-red-500">
                       <CardHeader className="pb-2">
@@ -271,37 +356,47 @@ const Announcements: React.FC = () => {
                           <div>
                             <CardTitle>{announcement.title}</CardTitle>
                             <CardDescription className="flex items-center gap-2 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {announcement.eventDate.toLocaleDateString()}
-                              </span>
+                              {announcement.eventDate && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(parseISO(announcement.eventDate), 'MMM d, yyyy')}
+                                </span>
+                              )}
                               <span className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 {announcement.region}
                               </span>
                             </CardDescription>
                           </div>
-                          <div className="flex gap-2">
-                            <Badge variant="destructive">Important</Badge>
-                            <Badge className={getCategoryBadgeColor(announcement.category)}>
-                              {announcement.category}
-                            </Badge>
-                          </div>
+                          <Badge variant="destructive">Important</Badge>
                         </div>
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm">{announcement.content}</p>
                       </CardContent>
-                      <CardFooter className="flex justify-between border-t pt-4">
+                      <CardFooter className="flex justify-between border-t pt-4 flex-wrap gap-2">
                         <div className="text-sm text-muted-foreground">
-                          Posted by: {announcement.postedBy} • {announcement.date.toLocaleDateString()}
+                          Posted by: {announcement.postedBy.username} • {format(parseISO(announcement.createdAt), 'MMM d, yyyy')}
                         </div>
-                        <Button variant="outline" size="sm">Learn More</Button>
+                        <div className="flex gap-2">
+                          {isAdmin && (
+                            <>
+                              <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(announcement)}>
+                                <Edit className="h-4 w-4 mr-1" /> Edit
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleOpenDeleteDialog(announcement)}>
+                                <Trash2 className="h-4 w-4 mr-1" /> Delete
+                              </Button>
+                            </>
+                          )}
+                          <Button variant="outline" size="sm">Learn More</Button>
+                        </div>
                       </CardFooter>
                     </Card>
                   ))
                 ) : (
                   <div className="text-center py-12">
+                    <AlertTriangle className="h-10 w-10 mx-auto text-amber-500 mb-4" />
                     <div className="text-xl font-medium mb-2">No important announcements found</div>
                     <p className="text-muted-foreground">
                       There are currently no important announcements matching your filters.
@@ -311,47 +406,67 @@ const Announcements: React.FC = () => {
               </TabsContent>
               
               <TabsContent value="events" className="space-y-4 mt-0">
-                {filteredAnnouncements.filter(a => a.eventDate > new Date()).length > 0 ? (
-                  filteredAnnouncements.filter(a => a.eventDate > new Date()).map((announcement) => (
-                    <Card key={announcement.id} className={announcement.important ? 'border-l-4 border-l-red-500' : ''}>
-                      <CardHeader className="pb-2">
-                        <div className="flex flex-wrap justify-between items-start gap-2">
-                          <div>
-                            <CardTitle>{announcement.title}</CardTitle>
-                            <CardDescription className="flex items-center gap-2 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {announcement.eventDate.toLocaleDateString()}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {announcement.region}
-                              </span>
-                            </CardDescription>
+                {isLoading ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary mb-4" />
+                    <div className="text-xl font-medium mb-2">Loading events</div>
+                  </div>
+                ) : filteredAnnouncements.filter(a => a.eventDate && new Date(a.eventDate) > new Date()).length > 0 ? (
+                  filteredAnnouncements
+                    .filter(a => a.eventDate && new Date(a.eventDate) > new Date())
+                    .map((announcement) => (
+                      <Card key={announcement.id} className={announcement.important ? 'border-l-4 border-l-red-500' : ''}>
+                        <CardHeader className="pb-2">
+                          <div className="flex flex-wrap justify-between items-start gap-2">
+                            <div>
+                              <CardTitle>{announcement.title}</CardTitle>
+                              <CardDescription className="flex items-center gap-2 mt-1">
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(parseISO(announcement.eventDate!), 'MMM d, yyyy')}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {announcement.region}
+                                </span>
+                              </CardDescription>
+                            </div>
+                            <div className="flex gap-2">
+                              {announcement.important && (
+                                <Badge variant="destructive">Important</Badge>
+                              )}
+                              <Badge className={getCategoryBadgeColor(announcement.category)}>
+                                {announcement.category}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm">{announcement.content}</p>
+                        </CardContent>
+                        <CardFooter className="flex justify-between border-t pt-4 flex-wrap gap-2">
+                          <div className="text-sm text-muted-foreground">
+                            Posted by: {announcement.postedBy.username} • {format(parseISO(announcement.createdAt), 'MMM d, yyyy')}
                           </div>
                           <div className="flex gap-2">
-                            {announcement.important && (
-                              <Badge variant="destructive">Important</Badge>
+                            {isAdmin && (
+                              <>
+                                <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(announcement)}>
+                                  <Edit className="h-4 w-4 mr-1" /> Edit
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => handleOpenDeleteDialog(announcement)}>
+                                  <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                </Button>
+                              </>
                             )}
-                            <Badge className={getCategoryBadgeColor(announcement.category)}>
-                              {announcement.category}
-                            </Badge>
+                            <Button variant="outline" size="sm">Learn More</Button>
                           </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm">{announcement.content}</p>
-                      </CardContent>
-                      <CardFooter className="flex justify-between border-t pt-4">
-                        <div className="text-sm text-muted-foreground">
-                          Posted by: {announcement.postedBy} • {announcement.date.toLocaleDateString()}
-                        </div>
-                        <Button variant="outline" size="sm">Learn More</Button>
-                      </CardFooter>
-                    </Card>
+                        </CardFooter>
+                      </Card>
                   ))
                 ) : (
                   <div className="text-center py-12">
+                    <Calendar className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
                     <div className="text-xl font-medium mb-2">No upcoming events found</div>
                     <p className="text-muted-foreground">
                       There are currently no upcoming events matching your filters.
@@ -370,12 +485,20 @@ const Announcements: React.FC = () => {
                   <CardTitle>Upcoming Events</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {upcomingEvents.length > 0 ? (
+                  {isLoading ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : upcomingEvents.length > 0 ? (
                     upcomingEvents.map((event) => (
                       <div key={event.id} className="flex gap-4">
                         <div className="flex-shrink-0 flex flex-col items-center justify-center bg-muted rounded-lg p-3 w-14 h-14">
-                          <span className="text-sm font-bold">{event.eventDate.getDate()}</span>
-                          <span className="text-xs text-muted-foreground">{event.eventDate.toLocaleString('default', { month: 'short' })}</span>
+                          <span className="text-sm font-bold">
+                            {format(parseISO(event.eventDate!), 'd')}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(parseISO(event.eventDate!), 'MMM')}
+                          </span>
                         </div>
                         <div>
                           <h3 className="font-medium text-sm">{event.title}</h3>
@@ -401,51 +524,133 @@ const Announcements: React.FC = () => {
                   <CardDescription>Get notified about new announcements</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Your Email</label>
-                    <Input type="email" placeholder="email@example.com" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Regions of Interest</label>
-                    <Select defaultValue="all">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select regions" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {regions.map((region) => (
-                          <SelectItem key={region.value} value={region.value}>
-                            {region.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Categories of Interest</label>
-                    <Select defaultValue="all">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select categories" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.value} value={category.value}>
-                            {category.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <form onSubmit={handleSubscribe}>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Your Email</label>
+                        <Input 
+                          type="email" 
+                          placeholder="email@example.com"
+                          value={subscriptionEmail}
+                          onChange={(e) => setSubscriptionEmail(e.target.value)}
+                          required 
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Categories of Interest</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {categories
+                            .filter(cat => cat.value !== 'all')
+                            .map((category) => (
+                              <div key={category.value} className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id={`cat-${category.value}`}
+                                  checked={selectedCategories.includes(category.value)}
+                                  onCheckedChange={() => handleCategoryCheckboxChange(category.value)}
+                                />
+                                <label 
+                                  htmlFor={`cat-${category.value}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {category.label}
+                                </label>
+                              </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Regions of Interest</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {regions
+                            .filter(reg => reg.value !== 'all')
+                            .map((region) => (
+                              <div key={region.value} className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id={`reg-${region.value}`}
+                                  checked={selectedRegions.includes(region.value)}
+                                  onCheckedChange={() => handleRegionCheckboxChange(region.value)}
+                                />
+                                <label 
+                                  htmlFor={`reg-${region.value}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {region.label}
+                                </label>
+                              </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        disabled={!subscriptionEmail || isSubmittingSubscription}
+                      >
+                        {isSubmittingSubscription ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Subscribing...
+                          </>
+                        ) : (
+                          'Subscribe'
+                        )}
+                      </Button>
+                    </div>
+                  </form>
                 </CardContent>
-                <CardFooter>
-                  <Button className="w-full">Subscribe</Button>
-                </CardFooter>
               </Card>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Create/Edit Announcement Dialog */}
+      <AnnouncementDialog 
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onSubmit={handleCreateOrUpdateAnnouncement}
+        announcement={currentAnnouncement ? {
+          id: currentAnnouncement.id,
+          title: currentAnnouncement.title,
+          content: currentAnnouncement.content,
+          category: currentAnnouncement.category,
+          region: currentAnnouncement.region,
+          important: currentAnnouncement.important,
+          eventDate: currentAnnouncement.eventDate ? parseISO(currentAnnouncement.eventDate) : undefined
+        } : undefined}
+        isEditing={!!currentAnnouncement}
+      />
+      
+      {/* Confirmation Dialog for Delete */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this announcement. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAnnouncement}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteAnnouncementMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 };
 
-export default Announcements;
+export default AnnouncementsPage;
