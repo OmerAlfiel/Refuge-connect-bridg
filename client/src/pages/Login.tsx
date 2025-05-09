@@ -13,14 +13,12 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { UserRole } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
-import { useTranslation } from "react-i18next";
 import { apiBaseUrl } from "@/lib/api";
 
 export default function Login() {
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { t } = useTranslation();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +27,6 @@ export default function Login() {
   // Add effect to redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      
       navigate('/dashboard');
     }
   }, [isAuthenticated, user, navigate]);
@@ -55,23 +52,20 @@ export default function Login() {
       if (response.ok) {
         login(data); // Pass the { user, access_token } object
         toast({
-          title: t("login.success"),
-          description: t("login.welcomeBack", { name: data.user.name }),
+          title: "Login successful",
+          description: `Welcome back, ${data.user.name}!`,
         });
-        
-        // Remove the explicit navigation here - let the useEffect handle it
-        // This ensures the auth context is fully updated before navigation
       } else {
         toast({
-          title: t("login.failed"),
-          description: data.message || t("login.invalidCredentials"),
+          title: "Login failed",
+          description: data.message || "Invalid credentials. Please try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: t("login.failed"),
-        description: t("login.errorOccurred"),
+        title: "Login failed",
+        description: "An error occurred. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -90,19 +84,19 @@ export default function Login() {
       });
       
       toast({
-        title: t("demo.activated"),
-        description: t("demo.welcomeAs", { role: t(`roles.${role}`) }),
+        title: "Demo Mode Activated",
+        description: `You are now signed in as a ${role}.`,
       });
       
-      // Remove this direct navigation too - let the useEffect handle it
+      
     } else {
       toast({
-        title: t("demo.failed"),
-        description: t("demo.roleMissing"),
+        title: "Demo failed",
+        description: "Could not load demo user for this role.",
         variant: "destructive",
       });
     }
-}
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/40">
@@ -112,9 +106,9 @@ export default function Login() {
       <div className="max-w-md w-full">
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">{t("login.title")}</CardTitle>
+            <CardTitle className="text-2xl text-center">Login</CardTitle>
             <CardDescription className="text-center">
-              {t("login.enterCredentials")}
+              Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -122,7 +116,7 @@ export default function Login() {
               <div className="space-y-2">
                 <Input
                   id="email"
-                  placeholder={t("common.email")}
+                  placeholder="Email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -132,7 +126,7 @@ export default function Login() {
               <div className="space-y-2">
                 <Input
                   id="password"
-                  placeholder={t("common.password")}
+                  placeholder="Password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -144,7 +138,7 @@ export default function Login() {
                 className="w-full" 
                 disabled={isLoading}
               >
-                {isLoading ? t("common.loading") : t("login.login")}
+                {isLoading ? "Loading..." : "Login"}
               </Button>
             </form>
             
@@ -154,7 +148,7 @@ export default function Login() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-2 text-muted-foreground">
-                  {t("demo.orUseDemo")}
+                  Or use demo account
                 </span>
               </div>
             </div>
@@ -164,31 +158,31 @@ export default function Login() {
                 variant="outline"
                 onClick={() => handleDemo("refugee")}
               >
-                {t("demo.loginAs")} {t("roles.refugee")}
+                Login as Refugee
               </Button>
               <Button 
                 variant="outline"
                 onClick={() => handleDemo("volunteer")}
               >
-                {t("demo.loginAs")} {t("roles.volunteer")}
+                Login as Volunteer
               </Button>
               <Button 
                 variant="outline"
                 onClick={() => handleDemo("ngo")}
               >
-                {t("demo.loginAs")} {t("roles.ngo")}
+                Login as NGO
               </Button>
               <Button 
                 variant="outline"
                 onClick={() => handleDemo("admin")}
               >
-                {t("demo.loginAs")} {t("roles.admin")}
+                Login as Admin
               </Button>
             </div>
           </CardContent>
           <CardFooter className="flex justify-center">
             <Button variant="link" asChild>
-              <Link to="/register">{t("login.dontHaveAccount")}</Link>
+              <Link to="/register">Don't have an account? Register</Link>
             </Button>
           </CardFooter>
         </Card>

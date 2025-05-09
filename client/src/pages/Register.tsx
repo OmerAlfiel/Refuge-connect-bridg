@@ -20,14 +20,12 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { UserRole } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
-import { useTranslation } from "react-i18next";
 import { apiBaseUrl } from "@/lib/api";
 
 export default function Register() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { t } = useTranslation();
   
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,8 +40,8 @@ export default function Register() {
     
     if (password !== confirmPassword) {
       toast({
-        title: t("register.passwordMismatch"),
-        description: t("register.passwordsMustMatch"),
+        title: "Password Mismatch",
+        description: "Passwords must match",
         variant: "destructive",
       });
       return;
@@ -71,21 +69,21 @@ export default function Register() {
       if (response.ok) {
         login(data); // Pass the { user, access_token } object
         toast({
-          title: t("register.success"),
-          description: t("register.welcome", { name: data.user.name }),
+          title: "Registration Successful",
+          description: `Welcome, ${data.user.name}!`,
         });
         navigate('/dashboard');
       } else {
         toast({
-          title: t("register.failed"),
-          description: data.message || t("register.checkInformation"),
+          title: "Registration Failed",
+          description: data.message || "Please check your information and try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: t("register.failed"),
-        description: t("register.errorOccurred"),
+        title: "Registration Failed",
+        description: "An error occurred. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -102,10 +100,10 @@ export default function Register() {
         <Card>
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">
-              {t("register.title")}
+              Create an Account
             </CardTitle>
             <CardDescription className="text-center">
-              {t("register.createAccount")}
+              Register to access refugee services and support
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -113,7 +111,7 @@ export default function Register() {
               <div className="space-y-2">
                 <Input
                   id="name"
-                  placeholder={t("common.name")}
+                  placeholder="Full Name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -123,7 +121,7 @@ export default function Register() {
               <div className="space-y-2">
                 <Input
                   id="email"
-                  placeholder={t("common.email")}
+                  placeholder="Email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -133,7 +131,7 @@ export default function Register() {
               <div className="space-y-2">
                 <Input
                   id="password"
-                  placeholder={t("common.password")}
+                  placeholder="Password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -143,7 +141,7 @@ export default function Register() {
               <div className="space-y-2">
                 <Input
                   id="confirmPassword"
-                  placeholder={t("register.confirmPassword")}
+                  placeholder="Confirm Password"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -156,12 +154,12 @@ export default function Register() {
                   onValueChange={(value: UserRole) => setRole(value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t("register.selectRole")} />
+                    <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="refugee">{t("roles.refugee")}</SelectItem>
-                    <SelectItem value="volunteer">{t("roles.volunteer")}</SelectItem>
-                    <SelectItem value="ngo">{t("roles.ngo")}</SelectItem>
+                    <SelectItem value="refugee">Refugee</SelectItem>
+                    <SelectItem value="volunteer">Volunteer</SelectItem>
+                    <SelectItem value="ngo">NGO</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -171,7 +169,7 @@ export default function Register() {
                   onValueChange={(value) => setLanguage(value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t("common.selectLanguage")} />
+                    <SelectValue placeholder="Select Language" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="en">English</SelectItem>
@@ -182,13 +180,13 @@ export default function Register() {
                 </Select>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? t("common.loading") : t("register.register")}
+                {isLoading ? "Loading..." : "Register"}
               </Button>
             </form>
           </CardContent>
           <CardFooter className="flex justify-center">
             <Button variant="link" asChild>
-              <Link to="/login">{t("register.alreadyHaveAccount")}</Link>
+              <Link to="/login">Already have an account? Login</Link>
             </Button>
           </CardFooter>
         </Card>
