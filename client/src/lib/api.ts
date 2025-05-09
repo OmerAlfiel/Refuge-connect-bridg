@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+export const apiBaseUrl = import.meta.env.VITE_API_URL || 
+                          'https://refuge-connect-bridg-production.up.railway.app';
+
 
 // Create an axios instance for services that need it (like the message service)
 export const api = axios.create({

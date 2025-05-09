@@ -12,7 +12,12 @@ async function bootstrap() {
   
   // Enable CORS
   app.enableCors({
-    origin: true,
+    origin: [
+      'https://refuge-connect-bridg.vercel.app',
+      'https://www.refuge-connect-bridg.vercel.app',
+      'http://localhost:5173',
+      'http://localhost:3000' 
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });

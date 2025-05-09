@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import { Message } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { apiBaseUrl } from '@/lib/api';
 
 interface WebSocketContextType {
   socket: Socket | null;
@@ -34,8 +35,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.log("WebSocket not connecting - user not authenticated");
       return;
     }
-
-    const newSocket = io('http://localhost:3000', {
+  
+    const wsUrl = apiBaseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
+    console.log(`Connecting to WebSocket at ${wsUrl}`);
+    
+    const newSocket = io(wsUrl, {
       auth: { token },
       transports: ['websocket'],
       reconnection: true,

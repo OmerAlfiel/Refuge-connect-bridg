@@ -13,7 +13,12 @@ import { UsersService } from '../users/users.service';
 @Injectable()
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: [
+      'https://refuge-connect-bridg.vercel.app', 
+      'https://www.refuge-connect-bridg.vercel.app',
+      'http://localhost:5173'
+    ],
+    credentials: true
   },
 })
 export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnect {

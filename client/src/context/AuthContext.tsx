@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
+import { apiBaseUrl } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -38,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
-        const response = await fetch('http://localhost:3000/auth/profile', {
+        const response = await fetch(`${apiBaseUrl}/auth/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
