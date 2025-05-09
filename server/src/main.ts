@@ -7,53 +7,18 @@ import { DataSource } from 'typeorm';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn', 'debug', 'log', 'verbose'], // Add more detailed logging
+    logger: ['error', 'warn', 'debug', 'log', 'verbose'],
   });
   
   // Enable CORS
   app.enableCors({
-    origin: true, // Allow all origins
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
-   // Get database connection and check tables
-   try {
-    const dataSource = app.get(DataSource);
-    
-    // Log database tables
-    const tables = await dataSource.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public'
-    `);
-    console.log("Database tables:", tables.map(t => t.table_name));
-    
-    // Check if matches table exists and examine its structure
-    const matchesTableExists = await dataSource.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' AND table_name = 'matches'
-      )
-    `);
-    
-    if (matchesTableExists[0].exists) {
-      console.log("Matches table exists, examining structure...");
-      const columns = await dataSource.query(`
-        SELECT column_name, data_type 
-        FROM information_schema.columns 
-        WHERE table_schema = 'public' AND table_name = 'matches'
-      `);
-      console.log("Matches table columns:", columns);
-    } else {
-      console.log("Matches table doesn't exist, synchronizing schema...");
-      await dataSource.synchronize(true);
-      console.log("Schema synchronization complete");
-    }
-  } catch (error) {
-    console.error("Database check error:", error);
-  }
-  
+  // Get config service
+  const configService = app.get(ConfigService);
   
   // Enable validation
   app.useGlobalPipes(
@@ -71,15 +36,21 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('auth', 'Authentication endpoints')
     .addTag('users', 'User management endpoints')
+    .addTag('needs', 'Need management endpoints')
+    .addTag('offers', 'Offer management endpoints')
+    .addTag('matches', 'Match management endpoints')
+    .addTag('messages', 'Message management endpoints')
+    .addTag('notifications', 'Notification management endpoints')
+    .addTag('announcements', 'Announcement management endpoints')
+    .addTag('locations', 'Location management endpoints')
     .addBearerAuth()
     .build();
   
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
   
-  const configService = app.get(ConfigService);
-  const port = configService.get('port');
-  
+  const port = process.env.PORT || configService.get('port') || 3000;
   await app.listen(port);
+  console.log(`Application is running on port ${port}`);
 }
 bootstrap();
