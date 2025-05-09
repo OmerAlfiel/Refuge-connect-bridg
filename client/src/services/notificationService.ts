@@ -1,5 +1,5 @@
 import { api } from '@/lib/api';
-import { NotificationType } from '@/types';
+import { Notification, NotificationType } from '@/types';
 
 
 
@@ -10,23 +10,23 @@ export type NotificationQueryParams = {
 
 export const notificationService = {
   getAllNotifications: async (params?: NotificationQueryParams): Promise<Notification[]> => {
-    const response = await api.get('/notifications', { params });
-    return response.data;
+    const response = await api.get<{ data: Notification[] }>('/notifications', { params });
+    return response.data.data;
   },
   
   getNotification: async (id: string): Promise<Notification> => {
-    const response = await api.get(`/notifications/${id}`);
-    return response.data;
+    const response = await api.get<{ data: Notification }>(`/notifications/${id}`);
+    return response.data.data;
   },
   
   getUnreadCount: async (): Promise<number> => {
-    const response = await api.get('/notifications/unread-count');
-    return response.data.count;
+    const response = await api.get<{ data: { count: number } }>('/notifications/unread-count');
+    return response.data.data.count;
   },
   
   markAsRead: async (id: string): Promise<Notification> => {
-    const response = await api.patch(`/notifications/${id}`, { read: true });
-    return response.data;
+    const response = await api.patch<{ data: Notification }>(`/notifications/${id}`, { read: true });
+    return response.data.data;
   },
   
   markAllAsRead: async (): Promise<void> => {
@@ -34,8 +34,8 @@ export const notificationService = {
   },
   
   markActionTaken: async (id: string): Promise<Notification> => {
-    const response = await api.patch(`/notifications/${id}`, { actionTaken: true });
-    return response.data;
+    const response = await api.patch<{ data: Notification }>(`/notifications/${id}`, { actionTaken: true });
+    return response.data.data;
   },
   
   deleteNotification: async (id: string): Promise<void> => {

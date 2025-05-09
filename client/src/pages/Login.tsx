@@ -14,6 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { UserRole } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslation } from "react-i18next";
+import { apiBaseUrl } from "@/lib/api";
 
 export default function Login() {
   const { login, isAuthenticated, user } = useAuth();
@@ -38,7 +39,7 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:3000/auth/login', {
+      const response = await fetch(`${apiBaseUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

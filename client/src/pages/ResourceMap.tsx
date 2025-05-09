@@ -12,6 +12,26 @@ import MapComponent, { MapComponentRef } from '@/components/MapComponent';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 
+interface ResourceContactInfo {
+  phone?: string;
+  email?: string;
+  website?: string;
+  hours?: string;
+}
+
+interface Resource {
+  id: string;
+  name: string;
+  category: string;
+  address: string;
+  description: string;
+  services: string[];
+  openHours: string;
+  distance: number;
+  coordinates: { lat: number; lng: number };
+  contactInfo?: ResourceContactInfo;
+}
+
 const ResourceMap: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -21,7 +41,7 @@ const ResourceMap: React.FC = () => {
   const { toast } = useToast();
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
-  const [activeResource, setActiveResource] = useState<any>(null);
+  const [activeResource, setActiveResource] = useState<Resource | null>(null);
   
   // Sample resource data
   const resources = [

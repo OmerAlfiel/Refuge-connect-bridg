@@ -10,22 +10,22 @@ export const announcementService = {
     if (params?.important !== undefined) queryParams.append('important', String(params.important));
     
     const url = queryParams.toString() ? `/announcements?${queryParams}` : '/announcements';
-    const response = await api.get(url);
+    const response = await api.get<Announcement[]>(url);
     return response.data;
   },
   
   getAnnouncement: async (id: string): Promise<Announcement> => {
-    const response = await api.get(`/announcements/${id}`);
+    const response = await api.get<Announcement>(`/announcements/${id}`);
     return response.data;
   },
   
   createAnnouncement: async (announcement: CreateAnnouncementRequest): Promise<Announcement> => {
-    const response = await api.post('/announcements', announcement);
+    const response = await api.post<Announcement>('/announcements', announcement);
     return response.data;
   },
   
   updateAnnouncement: async (id: string, announcement: Partial<CreateAnnouncementRequest>): Promise<Announcement> => {
-    const response = await api.patch(`/announcements/${id}`, announcement);
+    const response = await api.patch<Announcement>(`/announcements/${id}`, announcement);
     return response.data;
   },
   

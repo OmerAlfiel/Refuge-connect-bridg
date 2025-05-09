@@ -14,7 +14,22 @@ export const locationsService = {
       if (options.lng) params.append('lng', options.lng.toString());
       if (options.radius) params.append('radius', options.radius.toString());
       
-      const response = await axios.get(`${API_URL}/locations?${params.toString()}`);
+      const response = await axios.get<Array<{
+        id: string;
+        name: string;
+        type: string;
+        address: string;
+        lat: number;
+        lng: number;
+        description: string;
+        services: Array<{ name: string }>;
+        contactInfo?: {
+          phone?: string;
+          email?: string;
+          website?: string;
+          hours?: string;
+        };
+      }>>(`${API_URL}/locations?${params.toString()}`);
       
       // Transform the API data to match the client's expected format
       return response.data.map(location => ({
@@ -43,7 +58,22 @@ export const locationsService = {
   
   getById: async (id: string): Promise<LocationType> => {
     try {
-      const response = await axios.get(`${API_URL}/locations/${id}`);
+      const response = await axios.get<{
+        id: string;
+        name: string;
+        type: string;
+        address: string;
+        lat: number;
+        lng: number;
+        description: string;
+        services: Array<{ name: string }>;
+        contactInfo?: {
+          phone?: string;
+          email?: string;
+          website?: string;
+          hours?: string;
+        };
+      }>(`${API_URL}/locations/${id}`);
       
       // Transform the API data to match the client's expected format
       return {
@@ -85,7 +115,22 @@ export const locationsService = {
       };
       
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${API_URL}/locations`, apiData, {
+      const response = await axios.post<{
+        id: string;
+        name: string;
+        type: string;
+        address: string;
+        lat: number;
+        lng: number;
+        description: string;
+        services: Array<{ name: string }>;
+        contactInfo?: {
+          phone?: string;
+          email?: string;
+          website?: string;
+          hours?: string;
+        };
+      }>(`${API_URL}/locations`, apiData, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -146,7 +191,22 @@ export const locationsService = {
       if (locationData.contactInfo) apiData.contactInfo = locationData.contactInfo;
       
       const token = localStorage.getItem('token');
-      const response = await axios.patch(`${API_URL}/locations/${id}`, apiData, {
+      const response = await axios.patch<{
+        id: string;
+        name: string;
+        type: string;
+        address: string;
+        lat: number;
+        lng: number;
+        description: string;
+        services: Array<{ name: string }>;
+        contactInfo?: {
+          phone?: string;
+          email?: string;
+          website?: string;
+          hours?: string;
+        };
+      }>(`${API_URL}/locations/${id}`, apiData, {
         headers: {
           Authorization: `Bearer ${token}`
         }

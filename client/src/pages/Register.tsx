@@ -21,6 +21,7 @@ import { useAuth } from "@/context/AuthContext";
 import { UserRole } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslation } from "react-i18next";
+import { apiBaseUrl } from "@/lib/api";
 
 export default function Register() {
   const { login } = useAuth();
@@ -51,7 +52,7 @@ export default function Register() {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:3000/auth/register', {
+      const response = await fetch(`${apiBaseUrl}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -43,6 +43,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       auth: { token },
       transports: ['websocket'],
       reconnection: true,
+      path: '/socket.io/',
     });
 
     // Socket event handlers
