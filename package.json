@@ -1,0 +1,10 @@
+{
+  "name": "refuge-connect-bridge",
+  "version": "1.0.0",
+  "scripts": {
+    "install": "cd server && npm install",
+    "build": "cd server && npm run build",
+    "start:prod": "cd server && npm run start:prod",
+    "migration:run": "cd server && npm run migration:run"
+  }
+}
