@@ -50,10 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         const userData = await response.json();
-        console.log("User data loaded:", userData);
         setUser(userData);
         setIsAuthenticated(true);
-        console.log("User profile loaded:", userData.id);
       } catch (error) {
         console.error('Error fetching user profile:', error);
         // If profile fetch fails, token is probably invalid
@@ -70,7 +68,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const login = (data: { user: User; access_token: string }) => {
-    console.log("Login data received:", data);
     
     // Ensure user has a name property
     if (data.user && !data.user.name) {

@@ -18,8 +18,6 @@ getMatches: async (queryParams: MatchesQueryParams = {}, token: string): Promise
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
     
-    console.log(`Fetching matches from: ${apiBaseUrl}/matches${queryString}`);
-    
     const response = await fetch(`${apiBaseUrl}/matches${queryString}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -27,9 +25,6 @@ getMatches: async (queryParams: MatchesQueryParams = {}, token: string): Promise
         'Cache-Control': 'no-cache'
       }
     });
-    
-    // Log full response details for debugging
-    console.log(`Matches API response status: ${response.status} ${response.statusText}`);
     
     if (!response.ok) {
       // Get complete error response for debugging
@@ -49,7 +44,7 @@ getMatches: async (queryParams: MatchesQueryParams = {}, token: string): Promise
     }
     
     const data = await response.json();
-    console.log('Matches data received:', data);
+    
     
     // Validate data
     if (!Array.isArray(data)) {
@@ -95,8 +90,6 @@ getMatches: async (queryParams: MatchesQueryParams = {}, token: string): Promise
         throw new Error('Either needId or offerId must be provided');
       }
       
-      console.log('Creating match with data:', JSON.stringify(match));
-      
       const response = await fetch(`${apiBaseUrl}/matches`, {
         method: 'POST',
         headers: {
@@ -105,8 +98,6 @@ getMatches: async (queryParams: MatchesQueryParams = {}, token: string): Promise
         },
         body: JSON.stringify(match)
       });
-      
-      console.log(`Create match response status: ${response.status} ${response.statusText}`);
       
       if (!response.ok) {
         const responseText = await response.text();
@@ -133,7 +124,6 @@ getMatches: async (queryParams: MatchesQueryParams = {}, token: string): Promise
       }
       
       const createdMatch = await response.json();
-      console.log('Match created successfully:', createdMatch);
       return createdMatch;
     } catch (error) {
       console.error("Match creation error:", error);

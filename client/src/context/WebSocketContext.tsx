@@ -32,12 +32,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   
   useEffect(() => {
     if (!token || !user?.id) {
-      console.log("WebSocket not connecting - user not authenticated");
       return;
     }
   
     const wsUrl = apiBaseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
-    console.log(`Connecting to WebSocket at ${wsUrl}`);
     
     const newSocket = io(wsUrl, {
       auth: { token },
@@ -48,17 +46,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // Socket event handlers
     newSocket.on('connect', () => {
-      console.log('WebSocket connected');
       setIsConnected(true);
     });
 
     newSocket.on('disconnect', () => {
-      console.log('WebSocket disconnected');
       setIsConnected(false);
     });
 
     newSocket.on('newAnnouncement', (data: AnnouncementData) => {
-      console.log('New announcement received:', data);
       if (data.important) {
         toast({
           title: "⚠️ Important Announcement",
@@ -82,8 +77,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.error('WebSocket not connected for sending message');
         return null;
       }
-
-      console.log(`Sending message to conversation: ${conversationId}`);
       return new Promise((resolve, reject) => {
         socket.emit(
           'sendMessage',
@@ -111,7 +104,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
       
-      console.log(`Marking conversation as read: ${conversationId}`);
       socket.emit('markAsRead', { conversationId });
     },
     [socket, isConnected],

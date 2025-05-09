@@ -136,17 +136,17 @@ const Messages: React.FC = () => {
   // Format timestamp for display
   const formatMessageTime = (timestamp: string | Date | null | undefined) => {
     if (!timestamp) {
-      console.log('Missing timestamp:', timestamp);
+      
       return 'Unknown time';
     }
     
     try {
-      console.log('Attempting to format timestamp:', timestamp);
+      
       const date = new Date(timestamp);
       
       // Check if date is valid
       if (isNaN(date.getTime())) {
-        console.log('Invalid date format:', timestamp);
+        
         return 'Unknown time';
       }
       
@@ -168,13 +168,13 @@ const Messages: React.FC = () => {
   };
 
   const handleSelectConversation = async (conversationId: string) => {
-    console.log("Selected conversation:", conversationId);
+    
     setActiveConversationId(conversationId);
     
     // Mark messages as read when selecting a conversation
     if (conversationId && user?.id) {
       try {
-        console.log("Calling markConversationAsRead for:", conversationId);
+        
         await messageService.markConversationAsRead(conversationId);
         
         // Update conversation list to reflect read status

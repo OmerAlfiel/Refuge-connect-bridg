@@ -36,7 +36,7 @@ export function useCreateOffer() {
   
   return useMutation({
     mutationFn: (offer: CreateOfferRequest) => {
-      console.log("Creating offer with data:", JSON.stringify(offer, null, 2));
+      
       return OffersApi.createOffer(offer, token);
     },
     onSuccess: () => {

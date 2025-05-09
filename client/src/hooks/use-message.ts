@@ -13,10 +13,10 @@ export function useConversations() {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    console.log("Setting up newMessage listener for conversation list");
+    
     
     const handleNewMessage = (data: { message: { conversationId: string } }) => {
-      console.log("New message received, updating conversations", data);
+      
       // Invalidate conversations query to refresh the list
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
@@ -27,7 +27,7 @@ export function useConversations() {
     socket.on('newMessage', handleNewMessage);
     
     return () => {
-      console.log("Removing newMessage listener for conversation list");
+      
       socket.off('newMessage', handleNewMessage);
     };
   }, [socket, isConnected, queryClient]);
@@ -53,10 +53,10 @@ export function useConversationMessages(conversationId?: string) {
     
     prevConversationIdRef.current = conversationId;
     
-    console.log("Marking conversation as read:", conversationId);
+    
     messageService.markConversationAsRead(conversationId)
       .then(() => {
-        console.log("Successfully marked conversation as read");
+        
         // Update all related queries to reflect read status
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
         queryClient.invalidateQueries({ queryKey: ['unreadCount'] });

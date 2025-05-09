@@ -29,7 +29,7 @@ export default function Login() {
   // Add effect to redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log("User is authenticated, redirecting to dashboard...");
+      
       navigate('/dashboard');
     }
   }, [isAuthenticated, user, navigate]);
