@@ -1,0 +1,12 @@
+{
+  "watch": [
+    "server/**/*",
+    "package.json",
+    ".railway/server/**/*"
+  ],
+  "ignore": [
+    "server/**/*.test.js",
+    "server/**/*.spec.js",
+    "server/node_modules/**/*"
+  ]
+}
