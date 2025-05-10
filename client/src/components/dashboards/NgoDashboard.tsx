@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { User } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { Plus, FileText, MessageCircle, Bell, Users, Calendar, CheckCircle, Filt
 import { Link } from 'react-router-dom';
 import { Progress } from "@/components/ui/progress";
 import { useUserMatches } from '@/hooks/use-matches';
+import { useNeeds } from '@/hooks/use-needs';
+import { format } from 'date-fns';
 
 interface NgoDashboardProps {
   user: User | null;
@@ -15,6 +17,9 @@ interface NgoDashboardProps {
 const NgoDashboard: React.FC<NgoDashboardProps> = ({ user }) => {
   // Use the matches hook to get match data
   const { data: userMatches = [] } = useUserMatches();
+  
+  // Use the needs hook to get needs data
+  const { data: allNeeds = [] } = useNeeds();
   
   // Calculate match metrics
   const totalMatches = userMatches.length;
@@ -28,42 +33,41 @@ const NgoDashboard: React.FC<NgoDashboardProps> = ({ user }) => {
     ? Math.round((acceptedMatchesCount + completedMatchesCount) / totalMatches * 100) 
     : 0;
 
-  const needsByCategory = [
-    { category: 'Shelter', count: 18 },
-    { category: 'Food', count: 12 },
-    { category: 'Medical', count: 9 },
-    { category: 'Legal', count: 15 },
-    { category: 'Education', count: 7 },
-    { category: 'Translation', count: 5 },
-  ];
+  // Calculate real needs by category
+  const needsByCategory = useMemo(() => {
+    const categoryCount = new Map<string, number>();
+    
+    allNeeds.forEach(need => {
+      const category = need.category.charAt(0).toUpperCase() + need.category.slice(1);
+      categoryCount.set(category, (categoryCount.get(category) || 0) + 1);
+    });
+    
+    return Array.from(categoryCount.entries())
+      .map(([category, count]) => ({ category, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [allNeeds]);
 
-  const recentMatches = [
-    {
-      id: '1',
-      need: 'Temporary shelter needed',
-      offer: 'Room available for 2 weeks',
-      refugee: 'Ahmed H.',
-      volunteer: 'Sarah M.',
-      date: new Date(2023, 4, 18),
-    },
-    {
-      id: '2',
-      need: 'Legal assistance with asylum',
-      offer: 'Pro bono legal consultation',
-      refugee: 'Fatima K.',
-      volunteer: 'Legal Aid Society',
-      date: new Date(2023, 4, 17),
-    },
-    {
-      id: '3',
-      need: 'Food support for family of 4',
-      offer: 'Weekly food packages',
-      refugee: 'Mohammed A.',
-      volunteer: 'Food Bank Initiative',
-      date: new Date(2023, 4, 16),
-    },
-  ];
+  // Get recent matches
+  const recentMatches = useMemo(() => {
+    return userMatches
+      .filter(match => match.status === 'accepted' || match.status === 'completed')
+      .sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+      .slice(0, 3)
+      .map(match => ({
+        id: match.id,
+        need: match.need?.title || 'Unknown Need',
+        offer: match.offer?.title || 'Unknown Offer',
+        refugee: match.need?.user?.name || 'Anonymous Refugee',
+        volunteer: match.offer?.user?.name || 'Anonymous Volunteer',
+        date: new Date(match.createdAt),
+      }));
+  }, [userMatches]);
 
+  // Note: Upcoming events would need a new API/hook if available
+  // For now, we'll keep the mocked events until that API is available
   const upcomingEvents = [
     {
       id: '1',
@@ -97,8 +101,8 @@ const NgoDashboard: React.FC<NgoDashboardProps> = ({ user }) => {
             <CardTitle className="text-sm font-medium">Open Needs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">54</div>
-            <p className="text-xs text-muted-foreground mt-1">↑ 18% from last month</p>
+            <div className="text-3xl font-bold">{allNeeds.filter(n => n.status === 'open').length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Updated just now</p>
           </CardContent>
         </Card>
         <Card>
@@ -106,8 +110,8 @@ const NgoDashboard: React.FC<NgoDashboardProps> = ({ user }) => {
             <CardTitle className="text-sm font-medium">Available Offers</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">37</div>
-            <p className="text-xs text-muted-foreground mt-1">↑ 5% from last month</p>
+            <div className="text-3xl font-bold">{userMatches.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Updated just now</p>
           </CardContent>
         </Card>
         <Card>
@@ -115,8 +119,11 @@ const NgoDashboard: React.FC<NgoDashboardProps> = ({ user }) => {
             <CardTitle className="text-sm font-medium">Active Refugees</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">128</div>
-            <p className="text-xs text-muted-foreground mt-1">24 new this week</p>
+            <div className="text-3xl font-bold">{
+              // Count unique refugee users
+              new Set(allNeeds.map(need => need.userId)).size
+            }</div>
+            <p className="text-xs text-muted-foreground mt-1">Based on needs posted</p>
           </CardContent>
         </Card>
         <Card>
@@ -124,8 +131,8 @@ const NgoDashboard: React.FC<NgoDashboardProps> = ({ user }) => {
             <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">72%</div>
-            <p className="text-xs text-muted-foreground mt-1">↑ 8% from last month</p>
+            <div className="text-3xl font-bold">{successRate}%</div>
+            <p className="text-xs text-muted-foreground mt-1">From {totalMatches} total matches</p>
           </CardContent>
         </Card>
       </div>
@@ -150,13 +157,18 @@ const NgoDashboard: React.FC<NgoDashboardProps> = ({ user }) => {
                   <span className="text-sm font-medium">{item.category}</span>
                   <span className="text-sm text-muted-foreground">{item.count}</span>
                 </div>
-                <Progress value={(item.count / 20) * 100} className="h-2" />
+                <Progress 
+                  value={(item.count / (Math.max(...needsByCategory.map(i => i.count)) || 1)) * 100} 
+                  className="h-2" 
+                />
               </div>
             ))}
           </CardContent>
           <CardFooter>
-            <Button variant="outline" className="w-full">
-              View Detailed Report
+            <Button variant="outline" className="w-full" asChild>
+              <Link to="/needs">
+                View All Needs
+              </Link>
             </Button>
           </CardFooter>
         </Card>
@@ -241,22 +253,31 @@ const NgoDashboard: React.FC<NgoDashboardProps> = ({ user }) => {
           <CardDescription>Successfully connected needs with offers</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {recentMatches.map((match) => (
-            <div key={match.id} className="flex items-start gap-4 p-3 rounded-lg border">
-              <div className="h-8 w-8 rounded-full bg-ngo-100 text-ngo-700 flex items-center justify-center">
-                <CheckCircle className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="font-medium">{match.need}</div>
-                <div className="text-sm text-muted-foreground">
-                  <span className="text-ngo-600">{match.refugee}</span> + <span className="text-volunteer-600">{match.volunteer}</span>
+          {recentMatches.length > 0 ? (
+            recentMatches.map((match) => (
+              <div key={match.id} className="flex items-start gap-4 p-3 rounded-lg border">
+                <div className="bg-primary/10 p-2 rounded-full text-primary">
+                  <CheckCircle className="h-4 w-4" />
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  Matched on {match.date.toLocaleDateString()}
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Match: {match.id.substring(0, 8)}</h4>
+                    <span className="text-xs text-muted-foreground">{format(new Date(match.date), 'MMM d, yyyy')}</span>
+                  </div>
+                  <p className="text-sm">Need: {match.need}</p>
+                  <p className="text-sm">Offer: {match.offer}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs bg-muted px-2 py-1 rounded-full">Refugee: {match.refugee}</span>
+                    <span className="text-xs bg-muted px-2 py-1 rounded-full">Helper: {match.volunteer}</span>
+                  </div>
                 </div>
               </div>
+            ))
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              No recent matches to display
             </div>
-          ))}
+          )}
         </CardContent>
         <CardFooter>
           <Button variant="outline" className="w-full" asChild>
@@ -265,79 +286,39 @@ const NgoDashboard: React.FC<NgoDashboardProps> = ({ user }) => {
         </CardFooter>
       </Card>
 
-      {/* Upcoming Events */}
+      {/* Upcoming Events - keeping mocked data for now until we have events API */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Upcoming Events</span>
-            <Button>
-              <Calendar className="mr-2 h-4 w-4" /> Create Event
-            </Button>
-          </CardTitle>
-          <CardDescription>Events organized by your organization</CardDescription>
+          <CardTitle>Upcoming Events</CardTitle>
+          <CardDescription>Community events and workshops</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {upcomingEvents.map((event) => (
-              <div key={event.id} className="flex items-center gap-4">
-                <div className="flex flex-col items-center justify-center bg-muted rounded-lg p-3 min-w-[60px]">
-                  <span className="text-sm font-bold">{event.date.getDate()}</span>
-                  <span className="text-xs text-muted-foreground">{event.date.toLocaleString('default', { month: 'short' })}</span>
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">{event.title}</div>
-                  <div className="text-sm text-muted-foreground">{event.location}</div>
-                </div>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  {event.attendees}
-                </div>
-                <Button variant="outline" size="sm">
-                  Manage
-                </Button>
+        <CardContent className="space-y-4">
+          {upcomingEvents.map((event) => (
+            <div key={event.id} className="flex items-start gap-4 p-3 rounded-lg border">
+              <div className="bg-ngo-100 text-ngo-800 p-2 rounded-full">
+                <Calendar className="h-4 w-4" />
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Announcements */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Announcements</span>
-            <Button>
-              <Bell className="mr-2 h-4 w-4" /> Create Announcement
-            </Button>
-          </CardTitle>
-          <CardDescription>Broadcast important information to refugees and volunteers</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="border-l-4 border-ngo-500 pl-4 py-2">
-              <h3 className="font-semibold">Free Medical Camp</h3>
-              <p className="text-sm text-muted-foreground">Medical services available at Central Community Center on May 15, 2023. Bring your ID documents.</p>
-              <div className="flex justify-between mt-2">
-                <p className="text-xs text-muted-foreground">Posted 2 days ago</p>
-                <div className="space-x-2">
-                  <Button variant="ghost" size="sm">Edit</Button>
-                  <Button variant="ghost" size="sm" className="text-destructive">Delete</Button>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium">{event.title}</h4>
+                  <span className="text-xs text-muted-foreground">{format(new Date(event.date), 'MMM d, yyyy')}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{event.location}</p>
+                <div className="mt-1">
+                  <span className="text-xs bg-muted px-2 py-1 rounded-full">{event.attendees} attendees</span>
                 </div>
               </div>
+              <Button variant="ghost" size="icon">
+                <Bell className="h-4 w-4" />
+              </Button>
             </div>
-            <div className="border-l-4 border-ngo-500 pl-4 py-2">
-              <h3 className="font-semibold">Language Classes Registration</h3>
-              <p className="text-sm text-muted-foreground">Free language classes registration starting next week. English, German and French available.</p>
-              <div className="flex justify-between mt-2">
-                <p className="text-xs text-muted-foreground">Posted 5 days ago</p>
-                <div className="space-x-2">
-                  <Button variant="ghost" size="sm">Edit</Button>
-                  <Button variant="ghost" size="sm" className="text-destructive">Delete</Button>
-                </div>
-              </div>
-            </div>
-          </div>
+          ))}
         </CardContent>
+        <CardFooter>
+          <Button variant="outline" className="w-full">
+            <Plus className="h-4 w-4 mr-2" /> Create Event
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
