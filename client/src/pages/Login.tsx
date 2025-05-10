@@ -141,44 +141,6 @@ export default function Login() {
                 {isLoading ? "Loading..." : "Login"}
               </Button>
             </form>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or use demo account
-                </span>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2">
-              <Button 
-                variant="outline"
-                onClick={() => handleDemo("refugee")}
-              >
-                Login as Refugee
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => handleDemo("volunteer")}
-              >
-                Login as Volunteer
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => handleDemo("ngo")}
-              >
-                Login as NGO
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => handleDemo("admin")}
-              >
-                Login as Admin
-              </Button>
-            </div>
           </CardContent>
           <CardFooter className="flex justify-center">
             <Button variant="link" asChild>
@@ -189,58 +151,4 @@ export default function Login() {
       </div>
     </div>
   );
-}
-
-function getSampleUserByRole(role: UserRole) {
-  // Demo users for each role
-  switch (role) {
-    case "refugee":
-      return {
-        id: "refugee-demo-id",
-        name: "Refugee Demo User",
-        email: "refugee@demo.com",
-        role: role,
-        profileCompleted: true,
-        createdAt: new Date().toISOString(),
-        language: "en",
-        verified: true,
-      };
-    case "volunteer":
-      return {
-        id: "volunteer-demo-id",
-        name: "Volunteer Demo User",
-        email: "volunteer@demo.com",
-        role: role,
-        profileCompleted: true,
-        skills: ["language", "transportation", "housing"],
-        createdAt: new Date().toISOString(),
-        language: "en",
-        verified: true,
-      };
-    case "ngo":
-      return {
-        id: "ngo-demo-id",
-        name: "NGO Demo Organization",
-        email: "ngo@demo.com",
-        role: role,
-        organizationName: "Demo NGO",
-        profileCompleted: true,
-        createdAt: new Date().toISOString(),
-        language: "en",
-        verified: true,
-      };
-    case "admin":
-      return {
-        id: "admin-demo-id",
-        name: "Admin Demo User",
-        email: "admin@demo.com",
-        role: role,
-        profileCompleted: true,
-        createdAt: new Date().toISOString(),
-        language: "en",
-        verified: true,
-      };
-    default:
-      return null;
-  }
 }

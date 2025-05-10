@@ -17,7 +17,6 @@ export class NotificationsService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private readonly webSocketGateway: WebsocketGateway,
-    private notificationsService: NotificationsService,
   ) {}
 
   async create(createNotificationDto: CreateNotificationDto): Promise<Notification> {

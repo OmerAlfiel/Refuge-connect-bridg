@@ -17,7 +17,7 @@ export class MessagesService {
     private conversationRepository: Repository<Conversation>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private readonly notificationsService: NotificationsService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async createConversation(
