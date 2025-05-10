@@ -170,17 +170,24 @@ export class MessagesService {
     createMessageDto.conversationId, 
     userId
   );
-  
-  // Create notification for other participants
+    // Create notification for other participants
   conversation.participants.forEach(recipient => {
     if (recipient.id !== userId) {
-      // Inject NotificationsService and use it here
-      this.notificationsService.createMessageNotification(
-        recipient.id,
-        `New message from ${sender.name}`,
-        createMessageDto.content.substring(0, 100) + (createMessageDto.content.length > 100 ? '...' : ''),
-        createMessageDto.conversationId
-      ).catch(err => console.error('Failed to create notification:', err));
+      try {
+        console.log(`Creating message notification for user ${recipient.id} from ${sender.name}`);
+        this.notificationsService.createMessageNotification(
+          recipient.id,
+          `New message from ${sender.name}`,
+          createMessageDto.content.substring(0, 100) + (createMessageDto.content.length > 100 ? '...' : ''),
+          createMessageDto.conversationId
+        ).then(notification => {
+          console.log(`Successfully created notification: ${notification.id}`);
+        }).catch(err => {
+          console.error(`Failed to create notification for user ${recipient.id}:`, err);
+        });
+      } catch (error) {
+        console.error(`Error in notification creation for user ${recipient.id}:`, error);
+      }
     }
   });
     

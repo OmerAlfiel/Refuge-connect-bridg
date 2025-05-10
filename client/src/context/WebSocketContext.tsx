@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { Message } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import { apiBaseUrl } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface WebSocketContextType {
   socket: Socket | null;
@@ -29,6 +30,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const { user, token } = useAuth();
+  const queryClient = useQueryClient();
   
   useEffect(() => {
     if (!token || !user?.id) {
@@ -42,18 +44,32 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       transports: ['websocket'],
       reconnection: true,
       path: '/socket.io/',
-    });
-
-    // Socket event handlers
+    });    // Socket event handlers
     newSocket.on('connect', () => {
+      console.log('WebSocket connected successfully');
       setIsConnected(true);
     });
 
     newSocket.on('disconnect', () => {
+      console.log('WebSocket disconnected');
       setIsConnected(false);
     });
 
+    newSocket.on('newNotification', (data) => {
+      console.log('Received new notification:', data);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+    });
+    
+    newSocket.on('newMessage', (data) => {
+      console.log('Received new message:', data);
+      queryClient.invalidateQueries({ queryKey: ['messages', data.message?.conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+    });
+
     newSocket.on('newAnnouncement', (data: AnnouncementData) => {
+      console.log('Received new announcement:', data);
       if (data.important) {
         toast({
           title: "⚠️ Important Announcement",

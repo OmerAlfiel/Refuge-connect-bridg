@@ -8,10 +8,16 @@ export type NotificationQueryParams = {
   read?: boolean;
 };
 
-export const notificationService = {
-  getAllNotifications: async (params?: NotificationQueryParams): Promise<Notification[]> => {
-    const response = await api.get<{ data: Notification[] }>('/notifications', { params });
-    return response.data.data;
+export const notificationService = {  getAllNotifications: async (params?: NotificationQueryParams): Promise<Notification[]> => {
+    console.log('Fetching notifications with params:', params);
+    try {
+      const response = await api.get<{ data: Notification[] }>('/notifications', { params });
+      console.log('Notifications response:', response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      throw error;
+    }
   },
   
   getNotification: async (id: string): Promise<Notification> => {

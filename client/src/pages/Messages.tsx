@@ -34,13 +34,22 @@ const Messages: React.FC = () => {
   
   const { toast } = useToast();
   const { user } = useAuth();
-  
-  // Data fetching
-  const { data: conversations = [], isLoading: isLoadingConversations } = useConversations();
-  const { data: messages = [], isLoading: isLoadingMessages } = useConversationMessages(activeConversationId || undefined);
+    // Data fetching
+  const { data: conversations = [], isLoading: isLoadingConversations, error: conversationsError } = useConversations();
+  const { data: messages = [], isLoading: isLoadingMessages, error: messagesError } = useConversationMessages(activeConversationId || undefined);
   const { data: users = [], isLoading: isLoadingUsers, error: usersError } = useUsers();
   const sendMessageMutation = useSendMessage();
   const createConversationMutation = useCreateConversation();
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('Conversations loaded:', conversations);
+    if (conversationsError) console.error('Conversations error:', conversationsError);
+    if (activeConversationId) {
+      console.log('Active conversation messages:', messages);
+      if (messagesError) console.error('Messages error:', messagesError);
+    }
+  }, [conversations, messages, conversationsError, messagesError, activeConversationId]);
   
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {

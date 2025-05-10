@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,12 @@ const Notifications: React.FC = () => {
     data: Notification[];
     isLoading: boolean;
   }
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('All notifications loaded:', allNotifications);
+    console.log('Unread notifications loaded:', unreadNotifications);
+  }, [allNotifications, unreadNotifications]);
   
   // Mutations
   const markAsReadMutation = useMarkNotificationAsRead();

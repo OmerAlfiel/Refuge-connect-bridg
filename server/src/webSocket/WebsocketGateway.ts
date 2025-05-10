@@ -92,10 +92,9 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     }
     this.logger.log(`Client disconnected: ${client.id}, user: ${userId || 'unknown'}`);
   }
-
   emitToUser(userId: string, event: string, data: any) {
     this.server.to(`user:${userId}`).emit(event, data);
-    this.logger.debug(`Emitted ${event} to user: ${userId}`);
+    this.logger.log(`Emitted ${event} to user: ${userId} with data: ${JSON.stringify(data)}`);
   }
 
   emitToAll(event: string, data: any) {

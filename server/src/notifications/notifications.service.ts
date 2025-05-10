@@ -6,7 +6,6 @@ import { CreateNotificationDto } from './dto/create-notification.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { NotificationQueryDto } from './dto/notification-query.dto';
 import { User } from '../users/entities/user.entity';
-// Fix the import path - match proper casing
 import { WebsocketGateway } from '../webSocket/WebsocketGateway';
 
 @Injectable()
