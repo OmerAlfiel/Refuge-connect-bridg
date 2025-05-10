@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { User } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { apiBaseUrl } from '@/lib/api';
 
 export function useUsers() {
   const { user: currentUser, token } = useAuth();
@@ -12,7 +13,7 @@ export function useUsers() {
       
       if (!token) throw new Error("Not authenticated");
       
-      const response = await fetch('http://localhost:3000/users', {
+      const response = await fetch(`${apiBaseUrl}/users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }

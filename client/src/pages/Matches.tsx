@@ -193,7 +193,7 @@ const Matches: React.FC = () => {
               View and manage connections between needs and offers
               {compatiblePairs.length > 0 && (
                 <span className="block text-sm mt-1 text-green-600">
-                  You have {compatiblePairs.length} compatible need-offer pairs that could be matched
+                  There is {compatiblePairs.length} compatible need-offer pairs that could be matched
                 </span>
               )}
             </p>
