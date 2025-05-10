@@ -18,7 +18,12 @@ import { WsJwtGuard } from '../auth/guards/ws-jwt.guard';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: [
+      'https://refuge-connect-bridg.vercel.app', 
+      'https://www.refuge-connect-bridg.vercel.app',
+      'http://localhost:5173'
+    ],
+    credentials: true
   },
 })
 export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect {

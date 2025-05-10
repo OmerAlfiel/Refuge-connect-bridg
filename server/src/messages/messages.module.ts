@@ -10,12 +10,14 @@ import { AuthModule } from '../auth/auth.module';
 import { User } from 'src/users/entities/user.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Message, Conversation, User]),
     UsersModule,
     AuthModule,
+    NotificationsModule,
     // Add JwtModule directly
     JwtModule.registerAsync({
       inject: [ConfigService],

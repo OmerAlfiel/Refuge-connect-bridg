@@ -6,6 +6,7 @@ import { Conversation } from './entities/conversation.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class MessagesService {
@@ -16,6 +17,7 @@ export class MessagesService {
     private conversationRepository: Repository<Conversation>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createConversation(
@@ -163,6 +165,24 @@ export class MessagesService {
         lastMessageAt: new Date(),
       }
     );
+      // Get conversation to identify recipients
+  const conversation = await this.getConversationById(
+    createMessageDto.conversationId, 
+    userId
+  );
+  
+  // Create notification for other participants
+  conversation.participants.forEach(recipient => {
+    if (recipient.id !== userId) {
+      // Inject NotificationsService and use it here
+      this.notificationsService.createMessageNotification(
+        recipient.id,
+        `New message from ${sender.name}`,
+        createMessageDto.content.substring(0, 100) + (createMessageDto.content.length > 100 ? '...' : ''),
+        createMessageDto.conversationId
+      ).catch(err => console.error('Failed to create notification:', err));
+    }
+  });
     
     return savedMessage;
   }
